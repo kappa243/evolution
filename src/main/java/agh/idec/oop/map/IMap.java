@@ -8,7 +8,7 @@ import agh.idec.oop.field.Field;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.TreeSet;
 
 /**
  * The interface responsible for interacting with the map of World.
@@ -41,12 +41,12 @@ public interface IMap {
     void pop(IMapElement mapElement) throws IllegalArgumentException;
 
     /**
-     * Return all elements at a given position.
+     * Return all animals at a given position.
      *
-     * @param position A position on the map where to check existence of elements.
-     * @return List of elements at a given position.
+     * @param position A position on the map where to check existence of animals.
+     * @return Set of animals.
      */
-    List<IMapElement> getObjectsAt(Vector2D position);
+    TreeSet<Animal> getAnimalsAt(Vector2D position);
 
 
     /**
@@ -67,27 +67,11 @@ public interface IMap {
 
     /**
      * Return list of map's fields.
-     * @return HashMap of key vectors assigned to fields.
+     *
+     * @return HashMap of key vectors assigned to field.
      */
     HashMap<Vector2D, Field> getFields();
 
-    /**
-     * Return the animal from given list
-     * with the highest energy.
-     *
-     * @param animals List of animals.
-     * @return {@link Animal} or null if there are no animals in list.
-     */
-    Animal getStrongestAnimal(List<Animal> animals);
-
-
-    /**
-     * Extract animals from list of elements.
-     *
-     * @param elements List of elements.
-     * @return List of animals.
-     */
-    List<Animal> getAnimalsFromElements(List<IMapElement> elements);
 
     /**
      * Return width of map.

@@ -10,10 +10,9 @@ import agh.idec.oop.field.IMapField;
 import agh.idec.oop.observables.IPositionChangedObserver;
 import agh.idec.oop.utils.MapVisualizer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.TreeSet;
 
 public class AbstractMap implements IMap, IPositionChangedObserver {
 
@@ -81,20 +80,28 @@ public class AbstractMap implements IMap, IPositionChangedObserver {
         IMapField field = fields.get(position);
 
         if (field != null) {
-            if (!field.add(element)) {
-                throw new IllegalArgumentException("Element already exists in the map.");
-            }
-
             if (element instanceof Plant plant) {
-                plants.add(plant);
-            }
+                if (!field.hasPlant() && !field.hasAnimal()) {
+                    field.setPlant(plant);
 
-            if (element instanceof Animal animal) {
+                    plants.add(plant);
+                } else {
+                    throw new IllegalArgumentException("Another plant or animal is placed in that position.");
+                }
+
+            } else if (element instanceof Animal animal) {
+                Plant plant = field.removePlant();
+                if (plant != null) {
+                    plants.remove(plant);
+                }
+
                 animals.add(animal);
                 animal.addPositionChangedObserver(this);
             }
+
+
         } else {
-            throw new IllegalArgumentException("Animal is out of the map bound.");
+            throw new IllegalArgumentException("Element is out of bound.");
         }
 
     }
@@ -104,17 +111,20 @@ public class AbstractMap implements IMap, IPositionChangedObserver {
         Vector2D position = element.getPosition();
         Field field = fields.get(position);
 
-        if (!field.remove(element)) {
-            throw new IllegalArgumentException("Element is not stored in map.");
-        }
+        if (field != null) {
+            if (element instanceof Plant plant) {
+                field.removePlant();
+                plants.remove(plant);
 
-        if (element instanceof Plant plant) {
-            plants.remove(plant);
-        }
+            } else if (element instanceof Animal animal) {
+                field.remove(animal);
+                animals.remove(animal);
+                animal.removePositionChangedObserver(this);
+            }
 
-        if (element instanceof Animal animal) {
-            animals.remove(animal);
-            animal.removePositionChangedObserver(this);
+
+        } else {
+            throw new IllegalArgumentException("Element is out of bound.");
         }
     }
 
@@ -133,39 +143,9 @@ public class AbstractMap implements IMap, IPositionChangedObserver {
 
 
     @Override
-    public List<IMapElement> getObjectsAt(Vector2D position) {
+    public TreeSet<Animal> getAnimalsAt(Vector2D position) {
         Field field = fields.get(position);
-        return field.getElements();
-    }
-
-
-    @Override
-    public Animal getStrongestAnimal(List<Animal> animals) {
-        if (!animals.isEmpty()) {
-            animals.sort((a1, a2) -> {
-                if (a1.getEnergy() < a2.getEnergy()) {
-                    return -1;
-                } else if (a1.getEnergy() == a2.getEnergy()) {
-                    return 0;
-                } else {
-                    return 1;
-                }
-            });
-            return animals.get(animals.size() - 1);
-        } else {
-            return null;
-        }
-    }
-
-    @Override
-    public List<Animal> getAnimalsFromElements(List<IMapElement> elements) {
-        List<Animal> animals = new ArrayList<>();
-        for (IMapElement el : elements) {
-            if (el instanceof Animal) {
-                animals.add((Animal) el);
-            }
-        }
-        return animals;
+        return field.getAnimals();
     }
 
     @Override
@@ -177,16 +157,6 @@ public class AbstractMap implements IMap, IPositionChangedObserver {
     public int getHeight() {
         return height;
     }
-
-//    /**
-//     * Wrap position inside map bound, but element can move to unwrapped position (ex. wrap-around map).
-//     *
-//     * @param position Position to wrap.
-//     * @return Wrapped position.
-//     */
-//    public Vector2D wrapPosition(Vector2D position){
-//        return position;
-//    }
 
     @Override
     public void positionChanged(Animal animal, Vector2D oldPosition) {

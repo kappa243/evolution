@@ -1,8 +1,7 @@
 package agh.idec.oop.observables;
 
-import agh.idec.oop.Engine;
-import agh.idec.oop.map.IMap;
+import agh.idec.oop.World;
 
 public interface INextSimulatedDayObserver {
-    void onNextSimulatedDay(Engine engine);
+    void onNextSimulatedDay(World world);
 }

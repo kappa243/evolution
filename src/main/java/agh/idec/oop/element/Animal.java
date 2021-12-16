@@ -111,6 +111,11 @@ public class Animal extends AbstractMapElement {
         this.energy -= energy;
     }
 
+    /**
+     * Return animal's energy.
+     *
+     * @return Float value of energy.
+     */
     public float getEnergy() {
         return energy;
     }

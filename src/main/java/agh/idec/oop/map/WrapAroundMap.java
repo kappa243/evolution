@@ -2,7 +2,7 @@ package agh.idec.oop.map;
 
 import agh.idec.oop.Vector2D;
 
-public class WrapAroundMap extends AbstractMap{
+public class WrapAroundMap extends AbstractMap {
     public WrapAroundMap(int width, int height, int jungleWidth, int jungleHeight) {
         super(width, height, jungleWidth, jungleHeight);
     }
@@ -13,7 +13,7 @@ public class WrapAroundMap extends AbstractMap{
      * @param position Position to wrap.
      * @return Wrapped position.
      */
-    public Vector2D wrapPosition(Vector2D position){
+    public Vector2D wrapPosition(Vector2D position) {
         int height = this.getHeight();
         int width = this.getWidth();
 

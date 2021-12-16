@@ -11,12 +11,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Ellipse;
 import javafx.scene.text.Font;
 
-import java.util.Objects;
-
 public class MapGridualizer {
+    //Color.rgb(255, 200, 200);
+    //Color.rgb(255, 100, 0);
+    private static final int MIN_ENERGY_GREEN = 200;
+    private static final int MIN_ENERGY_BLUE = 200;
+    private static final int MAX_ENERGY_GREEN = 100;
+    private static final int MAX_ENERGY_BLUE = 0;
 
-    private static final Color MIN_ENERGY_COLOR = Color.rgb(255, 220, 200);
-    private static final Color MAX_ENERGY_COLOR = Color.rgb(255, 100, 0);
 
     private static final Color PLANT_COLOR = Color.rgb(241, 115, 255);
     private static final Color STEPPE_COLOR = Color.rgb(252, 252, 111);
@@ -53,7 +55,7 @@ public class MapGridualizer {
             gridPane.getRowConstraints().add(new RowConstraints(height));
         }
 
-        gridPane.setGridLinesVisible(true);
+        gridPane.setGridLinesVisible(false);
         gridPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderStroke.THIN)));
 
 
@@ -71,7 +73,6 @@ public class MapGridualizer {
 
                 Field field = map.getFields().get(map_pos);
 
-
                 if (field.hasPlant()) {
                     Ellipse ellipse = new Ellipse(0, 0, width / 3, height / 3);
                     ellipse.setFill(PLANT_COLOR);
@@ -80,7 +81,7 @@ public class MapGridualizer {
                     GridPane.setHalignment(ellipse, HPos.CENTER);
                 } else if (field.hasAnimal()) {
                     Ellipse ellipse = new Ellipse(0, 0, width / 3, height / 3);
-                    ellipse.setFill(getEnergyColor(this.map.getStrongestAnimal(this.map.getAnimalsFromElements(field.getElements())).getEnergy(), maxEnergy));
+                    ellipse.setFill(getEnergyColor(field.getAnimals().last().getEnergy(), maxEnergy));
 
                     gridPane.add(ellipse, pos.getX(), pos.getY(), 1, 1);
                     GridPane.setHalignment(ellipse, HPos.CENTER);
@@ -105,20 +106,20 @@ public class MapGridualizer {
         return label;
     }
 
-    private float getMaxEnergy(){
+    private float getMaxEnergy() {
         float max = 0;
-        for(Animal animal : this.map.getAnimals()){
-            if(animal.getEnergy() > max){
+        for (Animal animal : this.map.getAnimals()) {
+            if (animal.getEnergy() > max) {
                 max = animal.getEnergy();
             }
         }
         return max;
     }
 
-    private Color getEnergyColor(float energy, float maxEnergy){
-        int green = (int) (energy*MAX_ENERGY_COLOR.getGreen()/maxEnergy);
-        int blue = (int) (energy*MAX_ENERGY_COLOR.getBlue()/maxEnergy);
+    private Color getEnergyColor(float energy, float maxEnergy) {
+        int green = (int) (energy * (MIN_ENERGY_GREEN - MAX_ENERGY_GREEN) / maxEnergy);
+        int blue = (int) (energy * (MIN_ENERGY_BLUE - MAX_ENERGY_BLUE) / maxEnergy);
 
-        return Color.rgb(255, green, blue);
+        return Color.rgb(255, MIN_ENERGY_GREEN - green, MIN_ENERGY_BLUE - blue);
     }
 }

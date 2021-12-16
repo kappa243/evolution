@@ -1,6 +1,5 @@
 package agh.idec.oop.gui;
 
-import agh.idec.oop.Engine;
 import agh.idec.oop.World;
 import agh.idec.oop.observables.INextSimulatedDayObserver;
 import agh.idec.oop.utils.MapGridualizer;
@@ -17,18 +16,30 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 
 
 public class App extends Application implements INextSimulatedDayObserver {
 
     private final long[] frameTimes = new long[100];
-    private int frameTimeIndex = 0 ;
-    private boolean arrayFilled = false ;
+    private int frameTimeIndex = 0;
+    private boolean arrayFilled = false;
 
-    private final HashMap<Engine, MapGridualizer> gridualizerHashMap = new HashMap<>();
+    private final HashMap<World, MapGridualizer> gridualizerHashMap = new HashMap<>();
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void stop() throws Exception {
+        super.stop();
+
+        for(var world : gridualizerHashMap.keySet()){
+            world.stop();
+            world.removeNextSimulatedDayObserver(this);
+        }
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
         primaryStage.setTitle("Zwierzaczki");
         primaryStage.setResizable(false);
 
@@ -47,23 +58,22 @@ public class App extends Application implements INextSimulatedDayObserver {
         grid.setPrefHeight(580);
 
 
-
         Label label = new Label();
         leftPane.getChildren().add(label);
         AnimationTimer frameRateMeter = new AnimationTimer() {
 
             @Override
             public void handle(long now) {
-                long oldFrameTime = frameTimes[frameTimeIndex] ;
-                frameTimes[frameTimeIndex] = now ;
-                frameTimeIndex = (frameTimeIndex + 1) % frameTimes.length ;
+                long oldFrameTime = frameTimes[frameTimeIndex];
+                frameTimes[frameTimeIndex] = now;
+                frameTimeIndex = (frameTimeIndex + 1) % frameTimes.length;
                 if (frameTimeIndex == 0) {
-                    arrayFilled = true ;
+                    arrayFilled = true;
                 }
                 if (arrayFilled) {
-                    long elapsedNanos = now - oldFrameTime ;
-                    long elapsedNanosPerFrame = elapsedNanos / frameTimes.length ;
-                    double frameRate = 1_000_000_000.0 / elapsedNanosPerFrame ;
+                    long elapsedNanos = now - oldFrameTime;
+                    long elapsedNanosPerFrame = elapsedNanos / frameTimes.length;
+                    double frameRate = 1_000_000_000.0 / elapsedNanosPerFrame;
                     label.setText(String.format("Current frame rate: %.3f", frameRate));
                 }
             }
@@ -79,45 +89,42 @@ public class App extends Application implements INextSimulatedDayObserver {
 //
 //        mapGridualizer.createGrid();
 
-        World world = new World(true, 20, 20, 5, 5, 100, 30, 1,
-                    30, 1, 3);
+        World world = new World(true, 25, 25, 5, 5, 10000, 30, 1,
+                30, 2, 5);
+        world.addNextSimulatedDayObserver(this);
+
         MapGridualizer gridualizer = new MapGridualizer(world.getMap(), grid, 580, 580);
-        gridualizer.createGrid();
+//        gridualizer.createGrid();
+
+        gridualizerHashMap.put(world, gridualizer);
 
         Button button1 = new Button("label1");
 
 
         leftPane.getChildren().addAll(grid, button1);
 
-
-
-        Thread thread = new Thread(() -> {
-            Runnable runnable = () -> {
-                world.simulateDay();
-                gridualizer.createGrid();
-            };
-
-            while(true){
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                Platform.runLater(runnable);
-            }
-        });
-
-        thread.setDaemon(true);
-
         Scene scene = new Scene(main, 1200, 800);
         primaryStage.setScene(scene);
         primaryStage.show();
-        thread.start();
+
+        world.run();
     }
 
     @Override
-    public void onNextSimulatedDay(Engine engine) {
-        gridualizerHashMap.get(engine).createGrid();
+    public void onNextSimulatedDay(World world) {
+        // creating future task will ensure us that we will see updated UI before next simulation day will start
+        FutureTask<Void> updateUI = new FutureTask<>(() -> drawUI(world), null);
+
+        Platform.runLater(updateUI);
+
+        try {
+            updateUI.get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void drawUI(World world) {
+        gridualizerHashMap.get(world).createGrid();
     }
 }

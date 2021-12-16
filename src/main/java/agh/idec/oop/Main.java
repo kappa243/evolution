@@ -15,14 +15,14 @@ public class Main {
         }
 
 //        try {
-//            World world = new World(true, 50, 50, 12, 5, 100, 30, 1,
-//                    30, 20, 50);
+//            World world = new World(true, 20, 20, 5, 5, 100, 30, 1,
+//                    30, 1, 3);
 //
 //            while (world.getDay() != 10000) {
 //                world.simulateDay();
 ////                world.drawMap();
 //
-////                TimeUnit.MILLISECONDS.sleep(1);
+//                TimeUnit.MILLISECONDS.sleep(10);
 //            }
 //        } catch (Exception e) {
 //            e.printStackTrace();

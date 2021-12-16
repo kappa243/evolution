@@ -2,21 +2,24 @@ package agh.idec.oop.field;
 
 import agh.idec.oop.Vector2D;
 import agh.idec.oop.element.Animal;
-import agh.idec.oop.element.IMapElement;
 import agh.idec.oop.element.Plant;
+import com.sun.source.tree.Tree;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
+import java.util.TreeSet;
 
 public class Field implements IMapField {
     private final FieldType type;
     private final Vector2D position;
 
+
+    private Plant plant = null;
+
     /**
-     * Store elements on field. Grass cannot be stored along with Animals.
+     * Store animals on field.
      */
-    private final HashSet<IMapElement> elements = new HashSet<>();
+    private final TreeSet<Animal> animals = new TreeSet<>((o1, o2) -> Float.compare(o1.getEnergy(), o2.getEnergy()));
 
     /**
      * @param type Type of field.
@@ -30,38 +33,53 @@ public class Field implements IMapField {
         return position;
     }
 
+    public Plant getPlant() {
+        return plant;
+    }
+
     @Override
     public FieldType getType() {
         return this.type;
     }
 
     @Override
-    public boolean add(IMapElement element) {
-        return elements.add(element);
+    public boolean add(Animal animal) {
+        return animals.add(animal);
     }
 
     @Override
-    public boolean remove(IMapElement element) {
-        return elements.remove(element);
+    public boolean remove(Animal animal) {
+        return animals.remove(animal);
     }
 
     @Override
-    public List<IMapElement> getElements() {
-        return new ArrayList<>(this.elements);
+    public TreeSet<Animal> getAnimals() {
+        return this.animals;
+    }
+
+    @Override
+    public void setPlant(Plant plant) {
+        this.plant = plant;
+    }
+
+    public Plant removePlant() {
+        Plant plant = this.plant;
+        this.plant = null;
+        return plant;
     }
 
     @Override
     public boolean hasPlant() {
-        return this.elements.stream().anyMatch(o -> o instanceof Plant);
+        return this.plant != null;
     }
 
     @Override
     public boolean hasAnimal() {
-        return this.elements.stream().anyMatch(o -> o instanceof Animal);
+        return this.animals.size() > 0;
     }
 
     @Override
     public boolean isEmpty() {
-        return this.elements.isEmpty();
+        return this.animals.isEmpty() && this.plant == null;
     }
 }

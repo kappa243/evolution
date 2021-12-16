@@ -4,12 +4,14 @@ import agh.idec.oop.Vector2D;
 import agh.idec.oop.element.Animal;
 import agh.idec.oop.element.IMapElement;
 import agh.idec.oop.element.Plant;
+import agh.idec.oop.field.Field;
 import agh.idec.oop.field.FieldType;
 import agh.idec.oop.map.IMap;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 
@@ -57,19 +59,14 @@ public class MapVisualizer {
     private String drawObject(int x, int y) {
         String result;
         Vector2D position = new Vector2D(x, y);
-        List<IMapElement> elements = this.map.getObjectsAt(position);
-        List<Animal> animals = this.map.getAnimalsFromElements(elements);
-        if (!elements.isEmpty()) {
-            Animal animal = this.map.getStrongestAnimal(animals);
-            if (animal != null) {
-                result = "\u001b[31m" +  animal.toString() + "\u001b[0m";
-            } else {
-                Optional<IMapElement> plant = elements.stream().filter(elem -> elem instanceof Plant).findAny();
-                result = "\u001b[35m" + plant.get().toString() + "\u001b[0m";
-            }
+        Field field = this.map.getFields().get(position);
+        TreeSet<Animal> animals = field.getAnimals();
 
-
-        } else {
+        if(field.hasPlant()){
+            result = "\u001b[35m" + field.getPlant() + "\u001b[0m";
+        }else if (field.hasAnimal()){
+            result = "\u001b[31m" +  animals.first() + "\u001b[0m"; // just get animal, irrelevant which one
+        }else{
             result = EMPTY_CELL;
         }
 
