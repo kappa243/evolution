@@ -1,5 +1,7 @@
 package agh.idec.oop.field;
 
+import agh.idec.oop.Vector2D;
+import agh.idec.oop.element.Animal;
 import agh.idec.oop.element.IMapElement;
 import agh.idec.oop.element.Plant;
 
@@ -9,6 +11,7 @@ import java.util.List;
 
 public class Field implements IMapField {
     private final FieldType type;
+    private final Vector2D position;
 
     /**
      * Store elements on field. Grass cannot be stored along with Animals.
@@ -18,10 +21,14 @@ public class Field implements IMapField {
     /**
      * @param type Type of field.
      */
-    public Field(FieldType type) {
+    public Field(FieldType type, Vector2D position) {
         this.type = type;
+        this.position = position;
     }
 
+    public Vector2D getPosition() {
+        return position;
+    }
 
     @Override
     public FieldType getType() {
@@ -46,6 +53,11 @@ public class Field implements IMapField {
     @Override
     public boolean hasPlant() {
         return this.elements.stream().anyMatch(o -> o instanceof Plant);
+    }
+
+    @Override
+    public boolean hasAnimal() {
+        return this.elements.stream().anyMatch(o -> o instanceof Animal);
     }
 
     @Override

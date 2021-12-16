@@ -1,4 +1,6 @@
-package agh.idec.oop;
+package agh.idec.oop.element;
+
+import agh.idec.oop.Vector2D;
 
 public enum MapDirection {
     N,
@@ -24,11 +26,19 @@ public enum MapDirection {
         };
     }
 
-    public MapDirection next() {
-        return getMapDirection(NE, E, SE, S, SW, W, NW, N);
+    public MapDirection next(int num) {
+        MapDirection direction = this;
+        for (int i = 0; i < num; i++) {
+            direction = direction.getMapDirection(NE, E, SE, S, SW, W, NW, N);
+        }
+        return direction;
     }
 
-    public MapDirection previous() {
+    public MapDirection previous(int num) {
+        MapDirection direction = this;
+        for (int i = 0; i < num; i++) {
+            direction = direction.getMapDirection(NW, N, NE, E, SE, S, SW, W);
+        }
         return getMapDirection(NW, N, NE, E, SE, S, SW, W);
     }
 

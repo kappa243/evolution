@@ -7,59 +7,69 @@ import agh.idec.oop.element.Plant;
 import agh.idec.oop.field.Field;
 import agh.idec.oop.field.FieldType;
 import agh.idec.oop.field.IMapField;
-import agh.idec.oop.observables.IAnimalDeathObserver;
 import agh.idec.oop.observables.IPositionChangedObserver;
 import agh.idec.oop.utils.MapVisualizer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-public class AbstractMap implements IMap, IPositionChangedObserver, IAnimalDeathObserver {
+public class AbstractMap implements IMap, IPositionChangedObserver {
 
     private final MapVisualizer mapVisualizer = new MapVisualizer(this);
 
     private final int width;
     private final int height;
 
+    private final int jungleWidth;
+    private final int jungleHeight;
+
     private final HashMap<Vector2D, Field> fields = new HashMap<>();
     private final HashSet<Animal> animals = new HashSet<>();
     private final HashSet<Plant> plants = new HashSet<>();
 
-    public AbstractMap(int width, int height) {
+    public AbstractMap(int width, int height, int jungleWidth, int jungleHeight) {
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("Size of map is too small.");
         }
-//        if(steppeRadius < 1){
-//            throw new IllegalArgumentException("Size of map is too small.");
-//        }
-//        if(steppeRadius <= jungleRadius){
-//            throw new IllegalArgumentException("Jungle size is higher than steppe size.");
-//        }
-//        this.steppeSize = steppeRadius;
-//        this.jungleSize = jungleRadius;
+        if (jungleHeight < 0 || jungleWidth < 0) {
+            throw new IllegalArgumentException("Size of jungle is too small.");
+        }
+        if (jungleHeight > height || jungleWidth > width) {
+            throw new IllegalArgumentException("Size of jungle is too big.");
+        }
 
         this.width = width;
         this.height = height;
+
+        this.jungleWidth = jungleWidth;
+        this.jungleHeight = jungleHeight;
 
         generateFields();
     }
 
     private void generateFields() {
-        for (int y = 0; y < this.height; y++) {
-            for (int x = 0; x < this.width; x++) {
-                fields.put(new Vector2D(x, y), new Field(FieldType.STEPPE));
+        int y = (height / 2) - (jungleHeight / 2);
+        int x = (width / 2) - (jungleWidth / 2);
+
+        for (int j = y; j < y + jungleHeight; j++) {
+            for (int i = x; i < x + jungleWidth; i++) {
+                Vector2D position = new Vector2D(i, j);
+                this.fields.put(position, new Field(FieldType.JUNGLE, position));
+            }
+        }
+
+        for (y = 0; y < this.height; y++) {
+            for (x = 0; x < this.width; x++) {
+                Vector2D position = new Vector2D(x, y);
+                if (!this.fields.containsKey(position)) {
+                    this.fields.put(position, new Field(FieldType.STEPPE, position));
+                }
             }
         }
     }
 
-//    private void generateFields(int steppeRadius, int jungleRadius){
-//        for(int y = 0; y < steppeRadius*2 + 1; y++){
-//            for(int x = 0; x < steppeRadius*2 + 1; x++){
-//                fields.put(new Vector2D(x, y), new Field(FieldType.STEPPE));
-//            }
-//        }
-//    }
 
     public boolean canMoveTo(Vector2D position) {
         return (position.getX() >= 0 && position.getX() < width && position.getY() >= 0 && position.getY() < height);
@@ -72,7 +82,7 @@ public class AbstractMap implements IMap, IPositionChangedObserver, IAnimalDeath
 
         if (field != null) {
             if (!field.add(element)) {
-                throw new IllegalArgumentException("Element cannot be stored in map.");
+                throw new IllegalArgumentException("Element already exists in the map.");
             }
 
             if (element instanceof Plant plant) {
@@ -81,11 +91,10 @@ public class AbstractMap implements IMap, IPositionChangedObserver, IAnimalDeath
 
             if (element instanceof Animal animal) {
                 animals.add(animal);
-                animal.addAnimalDeathObserver(this);
                 animal.addPositionChangedObserver(this);
             }
         } else {
-            throw new IllegalArgumentException("Animal is out of map bound.");
+            throw new IllegalArgumentException("Animal is out of the map bound.");
         }
 
     }
@@ -105,15 +114,58 @@ public class AbstractMap implements IMap, IPositionChangedObserver, IAnimalDeath
 
         if (element instanceof Animal animal) {
             animals.remove(animal);
-            animal.removeAnimalDeathObserver(this);
             animal.removePositionChangedObserver(this);
         }
     }
 
     @Override
+    public HashMap<Vector2D, Field> getFields() {
+        return this.fields;
+    }
+
+    public HashSet<Animal> getAnimals() {
+        return animals;
+    }
+
+    public HashSet<Plant> getPlants() {
+        return plants;
+    }
+
+
+    @Override
     public List<IMapElement> getObjectsAt(Vector2D position) {
         Field field = fields.get(position);
         return field.getElements();
+    }
+
+
+    @Override
+    public Animal getStrongestAnimal(List<Animal> animals) {
+        if (!animals.isEmpty()) {
+            animals.sort((a1, a2) -> {
+                if (a1.getEnergy() < a2.getEnergy()) {
+                    return -1;
+                } else if (a1.getEnergy() == a2.getEnergy()) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            });
+            return animals.get(animals.size() - 1);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public List<Animal> getAnimalsFromElements(List<IMapElement> elements) {
+        List<Animal> animals = new ArrayList<>();
+        for (IMapElement el : elements) {
+            if (el instanceof Animal) {
+                animals.add((Animal) el);
+            }
+        }
+        return animals;
     }
 
     @Override
@@ -147,15 +199,6 @@ public class AbstractMap implements IMap, IPositionChangedObserver, IAnimalDeath
         newField.add(animal);
     }
 
-    @Override
-    public void onDeath(Animal animal) {
-        Field field = fields.get(animal.getPosition());
-        field.remove(animal);
-
-        animals.remove(animal);
-        animal.removeAnimalDeathObserver(this);
-        animal.removePositionChangedObserver(this);
-    }
 
     @Override
     public String toString() {

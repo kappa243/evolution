@@ -38,9 +38,17 @@ public interface IMapField {
     /**
      * Check if plant is on field.
      *
-     * @return True if plant exist on field.
+     * @return True if plant exists on field.
      */
     boolean hasPlant();
+
+
+    /**
+     * Check if animal is on field.
+     *
+     * @return True if animal exists on field.
+     */
+    boolean hasAnimal();
 
     /**
      * Check if the field is empty.

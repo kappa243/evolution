@@ -1,11 +1,16 @@
 package agh.idec.oop.utils;
 
 import agh.idec.oop.Vector2D;
+import agh.idec.oop.element.Animal;
 import agh.idec.oop.element.IMapElement;
+import agh.idec.oop.element.Plant;
+import agh.idec.oop.field.FieldType;
 import agh.idec.oop.map.IMap;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 /**
@@ -14,7 +19,7 @@ import java.util.Optional;
  * Based on <a href="https://github.com/apohllo/obiektowe-lab/blob/master/lab4/java/MapVisualizer.java">apohllo's MapVisualizer</a>
  */
 public class MapVisualizer {
-    private static final String EMPTY_CELL = " ";
+    private static final String EMPTY_CELL = "  ";
     private static final String FRAME_SEGMENT = "-";
     private static final String CELL_SEGMENT = "|";
 
@@ -29,15 +34,19 @@ public class MapVisualizer {
         builder.append(drawHeader());
         for (int y = map.getHeight(); y >= -1; y--) {
             builder.append(String.format("%3d: ", y));
-            for (int x = 0; x < map.getWidth(); x++) {
+            for (int x = 0; x < map.getWidth() + 1; x++) {
                 if (y < 0 || y > map.getHeight() - 1) {
                     builder.append(drawFrame(x < map.getWidth()));
                 } else {
                     builder.append(CELL_SEGMENT);
                     if (x < map.getWidth()) {
+                        builder.append(drawField(x, y));
                         builder.append(drawObject(x, y));
+                        builder.append("\u001b[0m");
+
                     }
                 }
+
             }
             builder.append(System.lineSeparator());
         }
@@ -47,10 +56,19 @@ public class MapVisualizer {
 
     private String drawObject(int x, int y) {
         String result;
-        List<IMapElement> elements = this.map.getObjectsAt(new Vector2D(x, y));
-        Optional<IMapElement> element = elements.stream().findAny();
-        if (element.isPresent()) {
-            result = element.get().toString();
+        Vector2D position = new Vector2D(x, y);
+        List<IMapElement> elements = this.map.getObjectsAt(position);
+        List<Animal> animals = this.map.getAnimalsFromElements(elements);
+        if (!elements.isEmpty()) {
+            Animal animal = this.map.getStrongestAnimal(animals);
+            if (animal != null) {
+                result = "\u001b[31m" +  animal.toString() + "\u001b[0m";
+            } else {
+                Optional<IMapElement> plant = elements.stream().filter(elem -> elem instanceof Plant).findAny();
+                result = "\u001b[35m" + plant.get().toString() + "\u001b[0m";
+            }
+
+
         } else {
             result = EMPTY_CELL;
         }
@@ -60,7 +78,7 @@ public class MapVisualizer {
 
     private String drawFrame(boolean innerSegment) {
         if (innerSegment) {
-            return FRAME_SEGMENT + FRAME_SEGMENT;
+            return FRAME_SEGMENT + FRAME_SEGMENT + FRAME_SEGMENT;
         } else {
             return FRAME_SEGMENT;
         }
@@ -70,9 +88,17 @@ public class MapVisualizer {
         StringBuilder builder = new StringBuilder();
         builder.append(" y\\x ");
         for (int x = 0; x < map.getWidth(); x++) {
-            builder.append(String.format("%2d", x));
+            builder.append(String.format("%3d", x));
         }
         builder.append(System.lineSeparator());
+        return builder.toString();
+    }
+
+    private String drawField(int x, int y){
+        StringBuilder builder = new StringBuilder();
+        if (this.map.getFields().get(new Vector2D(x, y)).getType() == FieldType.JUNGLE) {
+            builder.append("\u001b[42m");
+        }
         return builder.toString();
     }
 }

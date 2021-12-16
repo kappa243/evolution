@@ -1,46 +1,43 @@
 package agh.idec.oop.element;
 
-import agh.idec.oop.MapDirection;
 import agh.idec.oop.Vector2D;
 import agh.idec.oop.map.IMap;
 import agh.idec.oop.map.WrapAroundMap;
-import agh.idec.oop.observables.IAnimalDeathObserver;
 import agh.idec.oop.observables.IPositionChangedObserver;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 
-import static agh.idec.oop.MapDirection.*;
+import static agh.idec.oop.element.MapDirection.N;
 
 public class Animal extends AbstractMapElement {
 
-    //    private static float MAX_ENERGY = 10;
     private final float startEnergy;
 
-    private static final int GENE_SIZE = 4;
+    public static final int GENOTYPE_SIZE = 32;
+    public static final int GENE_TYPE = 8;
 
-    private final ArrayList<Integer> gene;
+    private final ArrayList<Integer> genotype;
     private float energy;
-    private MapDirection direction = mapIntToDirection(new Random().nextInt(8));
+    private MapDirection direction = N.next(new Random().nextInt(8));
 
     private final IMap map;
     private final HashSet<IPositionChangedObserver> positionChangedObserversobservers = new HashSet<>();
-    private final HashSet<IAnimalDeathObserver> animalDeathObservers = new HashSet<>();
 
-    public Animal(IMap map, Vector2D position, ArrayList<Integer> gene, float energy) {
+    public Animal(IMap map, Vector2D position, ArrayList<Integer> genotype, float energy) {
         super(position);
 
-        // validate gene
-        if (gene.size() != GENE_SIZE) {
-            throw new IllegalArgumentException("Gene has no proper amount of genotypes.");
+        // validate genotype
+        if (genotype.size() != GENOTYPE_SIZE) {
+            throw new IllegalArgumentException("Gene has no proper amount of genomes.");
         }
-        for (Integer genotype : gene) {
-            if (genotype < 0 || genotype > 7) {
-                throw new IllegalArgumentException("Values of gene are not valid.");
+        for (Integer gene : genotype) {
+            if (gene < 0 || gene > 7) {
+                throw new IllegalArgumentException("Values of genotype are not valid.");
             }
         }
-        this.gene = gene;
+        this.genotype = genotype;
 
         this.energy = energy;
         this.startEnergy = energy;
@@ -48,27 +45,33 @@ public class Animal extends AbstractMapElement {
     }
 
     /**
-     * Generate direction based on a gene of the Animal.
-     *
-     * @return Map direction.
+     * Generate direction based on a genotype of the Animal
+     * and move/rotate using that direction.
      */
-    private MapDirection decide() {
+    public void decide() {
         Random rand = new Random();
-        int decision = gene.get(rand.nextInt(GENE_SIZE));
+        int decision = genotype.get(rand.nextInt(GENOTYPE_SIZE));
+        MoveDirection direction = this.mapIntToDirection(decision);
+//        System.out.println(this.getPosition() + " " + this.direction + " " + direction);
 
-        return mapIntToDirection(decision);
+        this.move(direction);
     }
 
-
     /**
-     * Move or rotate animal
+     * Move or rotate animal with given direction.
+     *
+     * @param direction Direction where to move or rotate animal.
      */
-    public void move() { //TODO connect with world simulate
-        MapDirection direction = decide();
-
+    private void move(MoveDirection direction) {
         switch (direction) {
-            case N, S -> moveToVector(this.getPosition().add(direction.toUnitVector()));
-            default -> this.direction = direction;
+            case FORWARD -> moveToVector(this.getPosition().add(this.direction.toUnitVector()));
+            case BACKWARD -> moveToVector(this.getPosition().subtract(this.direction.toUnitVector()));
+            case ROTATE45 -> this.direction = this.direction.next(1);
+            case ROTATE90 -> this.direction = this.direction.next(2);
+            case ROTATE135 -> this.direction = this.direction.next(3);
+            case ROTATE225 -> this.direction = this.direction.previous(1);
+            case ROTATE270 -> this.direction = this.direction.previous(2);
+            case ROTATE315 -> this.direction = this.direction.previous(3);
         }
 
     }
@@ -97,25 +100,19 @@ public class Animal extends AbstractMapElement {
      */
     public void addEnergy(float energy) {
         this.energy += energy;
-//        if(this.energy > MAX_ENERGY){
-//            this.energy = MAX_ENERGY;
-//        }
     }
 
-
+    /**
+     * Drain energy from animal with given value.
+     *
+     * @param energy Float value of energy.
+     */
     public void removeEnergy(float energy) {
         this.energy -= energy;
-        if (this.energy <= 0) {
-            onDeath();
-        }
     }
 
     public float getEnergy() {
         return energy;
-    }
-
-    public void setEnergy(float energy) {
-        this.energy = energy;
     }
 
     /**
@@ -129,7 +126,7 @@ public class Animal extends AbstractMapElement {
         Animal weak = partner;
 
         // energy provided
-        if (this.energy >= 0.5 * startEnergy && partner.energy >= 0.5 * startEnergy) {
+        if (this.energy > 0.5 * startEnergy && partner.energy > 0.5 * startEnergy) {
             // select dominant
             if (!(this.energy > partner.energy)) {
                 strong = partner;
@@ -140,16 +137,16 @@ public class Animal extends AbstractMapElement {
             ArrayList<Integer> gene = new ArrayList<>();
 
             float sum = strong.energy + weak.energy;
-            int split = Math.round(GENE_SIZE * (weak.energy / sum));
+            int split = Math.round(GENOTYPE_SIZE * (weak.energy / sum));
 
             Random rand = new Random(); //randomize split
 
             if (rand.nextBoolean()) {
-                gene.addAll(weak.gene.subList(0, split));
-                gene.addAll(strong.gene.subList(split, GENE_SIZE));
+                gene.addAll(weak.genotype.subList(0, split));
+                gene.addAll(strong.genotype.subList(split, GENOTYPE_SIZE));
             } else {
-                gene.addAll(strong.gene.subList(0, split + 1));
-                gene.addAll(strong.gene.subList(split + 1, GENE_SIZE));
+                gene.addAll(strong.genotype.subList(0, split + 1));
+                gene.addAll(strong.genotype.subList(split + 1, GENOTYPE_SIZE));
             }
 
             // remove energy (will not die)
@@ -169,16 +166,16 @@ public class Animal extends AbstractMapElement {
      * @param num Number defining direction.
      * @return Map direction.
      */
-    private MapDirection mapIntToDirection(int num) {
+    private MoveDirection mapIntToDirection(int num) {
         return switch (num) {
-            case 0 -> N;
-            case 1 -> NE;
-            case 2 -> E;
-            case 3 -> SE;
-            case 4 -> S;
-            case 5 -> SW;
-            case 6 -> W;
-            case 7 -> NW;
+            case 0 -> MoveDirection.FORWARD;
+            case 1 -> MoveDirection.ROTATE45;
+            case 2 -> MoveDirection.ROTATE90;
+            case 3 -> MoveDirection.ROTATE135;
+            case 4 -> MoveDirection.BACKWARD;
+            case 5 -> MoveDirection.ROTATE225;
+            case 6 -> MoveDirection.ROTATE270;
+            case 7 -> MoveDirection.ROTATE315;
             default -> throw new IllegalArgumentException("Number is not valid argument to map as direction.");
         };
     }
@@ -198,32 +195,18 @@ public class Animal extends AbstractMapElement {
         }
     }
 
-    public void addAnimalDeathObserver(IAnimalDeathObserver observer) {
-        this.animalDeathObservers.add(observer);
-    }
-
-    public void removeAnimalDeathObserver(IAnimalDeathObserver observer) {
-        this.animalDeathObservers.remove(observer);
-    }
-
-    private void onDeath() {
-        for (var observer : animalDeathObservers) {
-            observer.onDeath(this);
-        }
-    }
-
-
     @Override
     public String toString() {
-        return switch (this.direction) {
-            case N -> "N";
-            case NE -> "NE";
-            case E -> "E";
-            case SE -> "SE";
-            case S -> "S";
-            case SW -> "SW";
-            case W -> "W";
-            case NW -> "NW";
-        };
+        return "■ ";
+//        return switch (this.direction) {
+//            case N -> "N ";
+//            case NE -> "NE";
+//            case E -> "E ";
+//            case SE -> "SE";
+//            case S -> "S ";
+//            case SW -> "SW";
+//            case W -> "W ";
+//            case NW -> "NW";
+//        };
     }
 }
