@@ -8,10 +8,7 @@ import agh.idec.oop.field.Field;
 import agh.idec.oop.field.FieldType;
 import agh.idec.oop.map.IMap;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -60,12 +57,12 @@ public class MapVisualizer {
         String result;
         Vector2D position = new Vector2D(x, y);
         Field field = this.map.getFields().get(position);
-        TreeSet<Animal> animals = field.getAnimals();
+        PriorityQueue<Animal> animals = field.getAnimals();
 
         if(field.hasPlant()){
             result = "\u001b[35m" + field.getPlant() + "\u001b[0m";
         }else if (field.hasAnimal()){
-            result = "\u001b[31m" +  animals.first() + "\u001b[0m"; // just get animal, irrelevant which one
+            result = "\u001b[31m" +  animals.peek() + "\u001b[0m"; // just get animal, irrelevant which one
         }else{
             result = EMPTY_CELL;
         }

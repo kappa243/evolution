@@ -41,7 +41,7 @@ public class App extends Application implements INextSimulatedDayObserver {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Zwierzaczki");
-        primaryStage.setResizable(false);
+        primaryStage.setResizable(true);
 
 
         HBox main = new HBox();
@@ -53,7 +53,7 @@ public class App extends Application implements INextSimulatedDayObserver {
 
         main.getChildren().addAll(leftPane);
 
-        Canvas canvas = new Canvas(580, 580);
+        Canvas canvas = new Canvas(800, 800);
 
         Label label = new Label();
         leftPane.getChildren().add(label);
@@ -79,11 +79,11 @@ public class App extends Application implements INextSimulatedDayObserver {
         frameRateMeter.start();
 
 
-        World world = new World(true, 20, 20, 5, 5, 100, 30, 1,
-                30, 1, 5);
+        World world = new World(true, 100, 100, 100, 10, 10000, 1000, 1,
+                10, 10, 30);
         world.addNextSimulatedDayObserver(this);
 
-        MapCanvasualizer gridualizer = new MapCanvasualizer(world.getMap(), canvas, 580, 580);
+        MapCanvasualizer gridualizer = new MapCanvasualizer(world.getMap(), canvas, 800, 800);
         gridualizer.updateCanvas();
 
         gridualizerHashMap.put(world, gridualizer);
@@ -94,7 +94,7 @@ public class App extends Application implements INextSimulatedDayObserver {
         leftPane.getChildren().addAll(canvas, button1);
 
 
-        Scene scene = new Scene(main, 1200, 800);
+        Scene scene = new Scene(main, 900, 900);
         primaryStage.setScene(scene);
         primaryStage.show();
 

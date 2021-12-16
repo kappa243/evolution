@@ -94,7 +94,7 @@ public class World {
             new Thread(() -> {
                 while (this.isRunning) {
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(1);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -114,10 +114,8 @@ public class World {
      */
     public void simulateDay() {
 
-        removeDeadAnimals();
-        this.logger.log();
-        nextSimulatedDay();
 
+        this.logger.log();
         System.out.println("Day: " + this.day);
         System.out.println("Animals: " + this.logger.getAnimalsCount());
         System.out.println("Plants: " + this.logger.getPlantsCount());
@@ -133,6 +131,8 @@ public class World {
         growPlants();
         drainEnergies();
 
+        removeDeadAnimals();
+        nextSimulatedDay();
 
         day++;
         this.logger.nextDay();
@@ -192,9 +192,9 @@ public class World {
 
         for (Plant plant : this.map.getPlants()) {
             Vector2D position = plant.getPosition();
-            TreeSet<Animal> animals = this.map.getAnimalsAt(position);
+            PriorityQueue<Animal> animals = this.map.getAnimalsAt(position);
             List<Animal> strongestAnimals = new ArrayList<>();
-            Iterator<Animal> iter = animals.descendingIterator();
+            Iterator<Animal> iter = animals.iterator();
 
             if (iter.hasNext()) { // ad the strongest animal at that position
                 Animal animal = iter.next();
@@ -244,9 +244,9 @@ public class World {
         int borned = 0;
 
         for (Vector2D position : positions) {
-            TreeSet<Animal> animals = this.map.getAnimalsAt(position);
+            PriorityQueue<Animal> animals = this.map.getAnimalsAt(position);
 
-            Iterator<Animal> iter = animals.descendingIterator();
+            Iterator<Animal> iter = animals.iterator();
 
             if (iter.hasNext()) {
                 Animal strong1 = iter.next();

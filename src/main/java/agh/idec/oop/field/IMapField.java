@@ -5,6 +5,7 @@ import agh.idec.oop.element.IMapElement;
 import agh.idec.oop.element.Plant;
 
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.TreeSet;
 
 public interface IMapField {
@@ -36,7 +37,7 @@ public interface IMapField {
      *
      * @return List of map elements.
      */
-    TreeSet<Animal> getAnimals();
+    PriorityQueue<Animal> getAnimals();
 
 
     /**

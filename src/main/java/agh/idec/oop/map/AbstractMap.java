@@ -12,6 +12,7 @@ import agh.idec.oop.utils.MapVisualizer;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.PriorityQueue;
 import java.util.TreeSet;
 
 public class AbstractMap implements IMap, IPositionChangedObserver {
@@ -96,6 +97,7 @@ public class AbstractMap implements IMap, IPositionChangedObserver {
                 }
 
                 animals.add(animal);
+                field.add(animal);
                 animal.addPositionChangedObserver(this);
             }
 
@@ -143,7 +145,7 @@ public class AbstractMap implements IMap, IPositionChangedObserver {
 
 
     @Override
-    public TreeSet<Animal> getAnimalsAt(Vector2D position) {
+    public PriorityQueue<Animal> getAnimalsAt(Vector2D position) {
         Field field = fields.get(position);
         return field.getAnimals();
     }

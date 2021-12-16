@@ -8,6 +8,7 @@ import agh.idec.oop.field.Field;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.PriorityQueue;
 import java.util.TreeSet;
 
 /**
@@ -46,7 +47,7 @@ public interface IMap {
      * @param position A position on the map where to check existence of animals.
      * @return Set of animals.
      */
-    TreeSet<Animal> getAnimalsAt(Vector2D position);
+    PriorityQueue<Animal> getAnimalsAt(Vector2D position);
 
 
     /**

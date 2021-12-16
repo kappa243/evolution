@@ -7,6 +7,7 @@ import com.sun.source.tree.Tree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.TreeSet;
 
 public class Field implements IMapField {
@@ -19,7 +20,7 @@ public class Field implements IMapField {
     /**
      * Store animals on field.
      */
-    private final TreeSet<Animal> animals = new TreeSet<>((o1, o2) -> Float.compare(o1.getEnergy(), o2.getEnergy()));
+    private final PriorityQueue<Animal> animals = new PriorityQueue<>((o1, o2) -> Float.compare(o2.getEnergy(), o1.getEnergy()));
 
     /**
      * @param type Type of field.
@@ -53,7 +54,7 @@ public class Field implements IMapField {
     }
 
     @Override
-    public TreeSet<Animal> getAnimals() {
+    public PriorityQueue<Animal> getAnimals() {
         return this.animals;
     }
 

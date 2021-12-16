@@ -8,6 +8,8 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
+import java.util.stream.Collectors;
+
 
 /**
  * Converts map into 2D canvas with colorized elements.
@@ -22,9 +24,9 @@ public class MapCanvasualizer {
 
     private static final Color ENERGY_COLOR = Color.hsb(30, 1, 1);
 
-    private static final Color PLANT_COLOR = Color.rgb(246, 122, 255);
-    private static final Color STEPPE_COLOR = Color.rgb(144, 252, 111);
-    private static final Color JUNGLE_COLOR = Color.rgb(0, 168, 84);
+    private static final Color PLANT_COLOR = Color.rgb(25, 255, 0);
+    private static final Color STEPPE_COLOR = Color.rgb(157, 182, 155);
+    private static final Color JUNGLE_COLOR = Color.rgb(113, 145, 108);
 
     private final IMap map;
     private final Canvas canvas;
@@ -76,7 +78,7 @@ public class MapCanvasualizer {
                     gc.setFill(PLANT_COLOR);
                     gc.fillOval(pos.getX() * width + width / 4, pos.getY() * height + height / 4, width / 2, height / 2);
                 } else if (field.hasAnimal()) {
-                    gc.setFill(getEnergyColor(field.getAnimals().last().getEnergy(), maxEnergy));
+                    gc.setFill(getEnergyColor(field.getAnimals().peek(), maxEnergy));
                     gc.fillOval(pos.getX() * width + width / 4, pos.getY() * height + height / 4, width / 2, height / 2);
                 }
             }
@@ -120,12 +122,15 @@ public class MapCanvasualizer {
      * @param maxEnergy Maximum energy of all animals.
      * @return Color of energy.
      */
-    private Color getEnergyColor(float energy, float maxEnergy) {
+    private Color getEnergyColor(Animal energy, float maxEnergy) {
 //        int green = (int) (energy * (MIN_ENERGY_GREEN - MAX_ENERGY_GREEN) / maxEnergy);
 //        int blue = (int) (energy * (MIN_ENERGY_BLUE - MAX_ENERGY_BLUE) / maxEnergy);
 //
 //        return Color.rgb(255, MIN_ENERGY_GREEN - green, MIN_ENERGY_BLUE - blue);
-
-        return Color.hsb(ENERGY_COLOR.getHue(), ENERGY_COLOR.getSaturation() / 2 + (energy * ENERGY_COLOR.getSaturation() / 2) / maxEnergy, ENERGY_COLOR.getBrightness());
+        if(energy.getEnergy() < 0){
+            System.out.println(this.map.getAnimalsAt(energy.getPosition()).stream().map(Animal::getEnergy).collect(Collectors.toList()));
+            System.out.println(energy.getPosition());
+        }
+        return Color.hsb(ENERGY_COLOR.getHue(), (energy.getEnergy() * ENERGY_COLOR.getSaturation()) / maxEnergy, ENERGY_COLOR.getBrightness());
     }
 }
