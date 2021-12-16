@@ -93,6 +93,11 @@ public class World {
             this.isRunning = true;
             new Thread(() -> {
                 while (this.isRunning) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     simulateDay();
                 }
             }).start();

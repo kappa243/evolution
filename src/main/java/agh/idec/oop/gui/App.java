@@ -2,15 +2,15 @@ package agh.idec.oop.gui;
 
 import agh.idec.oop.World;
 import agh.idec.oop.observables.INextSimulatedDayObserver;
-import agh.idec.oop.utils.MapGridualizer;
+import agh.idec.oop.utils.MapCanvasualizer;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -26,13 +26,13 @@ public class App extends Application implements INextSimulatedDayObserver {
     private int frameTimeIndex = 0;
     private boolean arrayFilled = false;
 
-    private final HashMap<World, MapGridualizer> gridualizerHashMap = new HashMap<>();
+    private final HashMap<World, MapCanvasualizer> gridualizerHashMap = new HashMap<>();
 
     @Override
     public void stop() throws Exception {
         super.stop();
 
-        for(var world : gridualizerHashMap.keySet()){
+        for (var world : gridualizerHashMap.keySet()) {
             world.stop();
             world.removeNextSimulatedDayObserver(this);
         }
@@ -53,10 +53,7 @@ public class App extends Application implements INextSimulatedDayObserver {
 
         main.getChildren().addAll(leftPane);
 
-        GridPane grid = new GridPane();
-        grid.setPrefWidth(580);
-        grid.setPrefHeight(580);
-
+        Canvas canvas = new Canvas(580, 580);
 
         Label label = new Label();
         leftPane.getChildren().add(label);
@@ -82,26 +79,20 @@ public class App extends Application implements INextSimulatedDayObserver {
         frameRateMeter.start();
 
 
-//        Engine worldNormal = new Engine();
-//        worldNormal.addSimulationDayObserver(this);
-//        MapGridualizer mapGridualizer = new MapGridualizer(worldNormal.getMap(), grid, 580, 580);
-//        gridualizerHashMap.put(worldNormal, mapGridualizer);
-//
-//        mapGridualizer.createGrid();
-
-        World world = new World(true, 25, 25, 5, 5, 10000, 30, 1,
-                30, 2, 5);
+        World world = new World(true, 20, 20, 5, 5, 100, 30, 1,
+                30, 1, 5);
         world.addNextSimulatedDayObserver(this);
 
-        MapGridualizer gridualizer = new MapGridualizer(world.getMap(), grid, 580, 580);
-//        gridualizer.createGrid();
+        MapCanvasualizer gridualizer = new MapCanvasualizer(world.getMap(), canvas, 580, 580);
+        gridualizer.updateCanvas();
 
         gridualizerHashMap.put(world, gridualizer);
 
         Button button1 = new Button("label1");
 
 
-        leftPane.getChildren().addAll(grid, button1);
+        leftPane.getChildren().addAll(canvas, button1);
+
 
         Scene scene = new Scene(main, 1200, 800);
         primaryStage.setScene(scene);
@@ -125,6 +116,6 @@ public class App extends Application implements INextSimulatedDayObserver {
     }
 
     private void drawUI(World world) {
-        gridualizerHashMap.get(world).createGrid();
+        gridualizerHashMap.get(world).updateCanvas();
     }
 }
