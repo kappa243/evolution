@@ -8,7 +8,6 @@ import agh.idec.oop.map.IMap;
 import agh.idec.oop.map.NormalMap;
 import agh.idec.oop.map.WrapAroundMap;
 import agh.idec.oop.observables.INextSimulatedDayObserver;
-import agh.idec.oop.observables.IPositionChangedObserver;
 import agh.idec.oop.utils.WorldInformationLogger;
 
 import java.util.*;
@@ -94,7 +93,8 @@ public class World {
             new Thread(() -> {
                 while (this.isRunning) {
                     try {
-                        Thread.sleep(1);
+                        //noinspection BusyWait
+                        Thread.sleep(10);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -108,6 +108,9 @@ public class World {
         this.isRunning = false;
     }
 
+    public boolean isRunning() {
+        return isRunning;
+    }
 
     /**
      * Start new day in world
@@ -305,6 +308,10 @@ public class World {
 
     public IMap getMap() {
         return map;
+    }
+
+    public WorldInformationLogger getLogger() {
+        return logger;
     }
 
     public void addNextSimulatedDayObserver(INextSimulatedDayObserver observer) {
