@@ -35,25 +35,18 @@ public class MapCanvasualizer {
     private final IMap map;
     private final Canvas canvas;
 
-    private double canvasWidth;
-    private double canvasHeight;
 
     private Vector2D top_limit;
     private Vector2D bottom_limit;
     private double height;
     private double width;
 
-    public MapCanvasualizer(IMap map, Canvas canvas, double gridWidth, double gridHeight) {
+    public MapCanvasualizer(IMap map, Canvas canvas) {
         this.map = map;
         this.canvas = canvas;
-        this.canvasWidth = gridWidth;
-        this.canvasHeight = gridHeight;
 
         this.top_limit = new Vector2D(map.getWidth() - 1, map.getHeight() - 1);
         this.bottom_limit = new Vector2D(0, 0);
-
-        this.width = gridWidth / map.getWidth();
-        this.height = gridHeight / map.getHeight();
     }
 
     /**
@@ -61,6 +54,9 @@ public class MapCanvasualizer {
      */
     public void updateCanvas() {
         GraphicsContext gc = this.canvas.getGraphicsContext2D();
+
+        this.width = this.canvas.getWidth() / map.getWidth();
+        this.height = this.canvas.getHeight() / map.getHeight();
 
         float maxEnergy = getMaxEnergy();
 
@@ -115,12 +111,12 @@ public class MapCanvasualizer {
 
 
     public String getClickedAnimal(MouseEvent event) {
-        Vector2D position = new Vector2D((int) (event.getX() / this.width) , (int) (event.getY() / this.height));
+        Vector2D position = new Vector2D((int) (event.getX() / this.width), (int) (event.getY() / this.height));
         Vector2D mappedPosition = mapCanvasPosToMapPos(position);
         PriorityQueue<Animal> animals = this.map.getAnimalsAt(mappedPosition);
 
         Animal animal = animals.peek();
-        return "X: " + position.getX() + ", Y: " + position.getY() + ", Energy: " + (animal!=null ? animal.getEnergy() : (this.map.getFields().get(mappedPosition)).hasPlant() ? "Grass" : "nothing");
+        return "X: " + position.getX() + ", Y: " + position.getY() + ", Energy: " + (animal != null ? animal.getEnergy() : (this.map.getFields().get(mappedPosition)).hasPlant() ? "Grass" : "nothing");
     }
 
 
@@ -139,7 +135,7 @@ public class MapCanvasualizer {
         return position;
     }
 
-    private Vector2D mapCanvasPosToMapPos(Vector2D position){
+    private Vector2D mapCanvasPosToMapPos(Vector2D position) {
         position = new Vector2D(position.getX(), (top_limit.getY() - bottom_limit.getY()) - position.getY());
         position = position.add(bottom_limit);
 

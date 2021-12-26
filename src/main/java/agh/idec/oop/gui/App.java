@@ -1,6 +1,7 @@
 package agh.idec.oop.gui;
 
 import agh.idec.oop.World;
+import agh.idec.oop.observables.IMagicDayObserver;
 import agh.idec.oop.observables.INextSimulatedDayObserver;
 import agh.idec.oop.utils.MapCanvasualizer;
 import agh.idec.oop.utils.WorldInformationLogger;
@@ -12,9 +13,8 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -27,11 +27,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 
-public class App extends Application implements INextSimulatedDayObserver {
+public class App extends Application implements INextSimulatedDayObserver, IMagicDayObserver {
 
     private class WorldWrapper {
 
         final private World world;
+        final private String world_name;
         private MapCanvasualizer canvasualizer;
         final private WorldInformationLogger logger;
 
@@ -42,16 +43,16 @@ public class App extends Application implements INextSimulatedDayObserver {
         final private XYChart.Series<Number, Number> averageChildren = new XYChart.Series<>();
         private NumberAxis xAxis;
 
-        public WorldWrapper(World world) {
+        public WorldWrapper(World world, String world_name) {
             this.world = world;
-//            this.canvasualizer = new MapCanvasualizer(this.world.getMap(), canvas, width, height);
+            this.world_name = world_name;
             this.logger = world.getLogger();
 
             this.animalsCount.setName("Animals count");
             this.plantsCount.setName("Plants count");
             this.averageEnergy.setName("Average energy");
             this.averageLifeLength.setName("Average life length");
-            this.averageChildren.setName("Animals children count");
+            this.averageChildren.setName("Average children count");
         }
 
         public void setCanvasualizer(MapCanvasualizer canvasualizer) {
@@ -62,15 +63,23 @@ public class App extends Application implements INextSimulatedDayObserver {
             return canvasualizer;
         }
 
-        public void setxAxis(NumberAxis xAxis){
+        public void setxAxis(NumberAxis xAxis) {
             this.xAxis = xAxis;
         }
 
-        public World getWorld(){
+        public World getWorld() {
             return this.world;
         }
 
-        public List<XYChart.Series<Number, Number>> getSeries(){
+        public void announceMagicDay() {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Magic day " + this.world.getMagicDay() + " happened at " + this.world_name + "!", ButtonType.OK);
+            alert.show();
+            this.world.stop();
+
+            alert.setOnCloseRequest(event -> this.world.run());
+        }
+
+        public List<XYChart.Series<Number, Number>> getSeries() {
             return Arrays.asList(this.animalsCount, this.plantsCount, this.averageEnergy, this.averageLifeLength, this.averageChildren);
         }
 
@@ -81,7 +90,7 @@ public class App extends Application implements INextSimulatedDayObserver {
             this.averageLifeLength.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getAverageAnimalsLifeLength()));
             this.averageChildren.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getAverageChildrenCount()));
 
-            for(var series : this.getSeries()){
+            for (var series : this.getSeries()) {
                 if (series.getData().size() > 500)
                     series.getData().remove(0);
                 xAxis.setLowerBound(Math.max(0, this.world.getDay() - 500));
@@ -95,40 +104,107 @@ public class App extends Application implements INextSimulatedDayObserver {
         }
     }
 
-    private final long[] frameTimes = new long[100];
-    private int frameTimeIndex = 0;
-    private boolean arrayFilled = false;
+    private class SettingsWrapper {
+        public int width = 20;
+        public int height = 20;
+        public boolean wrapAround = true;
+        public int animals = 100;
+        public float energy = 100;
+        public float moveEnergy = 1;
+        public float plantEnergy = 10;
+        public int steppePlants = 5;
+        public int junglePlants = 10;
+        public boolean magic = false;
+    }
 
     private HashMap<World, WorldWrapper> worlds = new HashMap<>();
 
     @Override
-    public void stop() throws Exception {
-        super.stop();
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Evolution");
+        primaryStage.setResizable(false);
 
-        for(var world : this.worlds.values()){
-            world.getWorld().stop();
-            world.getWorld().removeNextSimulatedDayObserver(this);
-        }
+        VBox main = new VBox();
+        main.setPadding(new Insets(10, 10, 10, 10));
+        main.setSpacing(5);
+
+        SettingsWrapper world1 = new SettingsWrapper();
+        SettingsWrapper world2 = new SettingsWrapper();
+
+        Button world1Button = new Button("Configure world 1");
+        world1Button.setPrefWidth(210);
+        world1Button.setOnMouseClicked(event -> {
+            Platform.runLater(() -> this.configWorld(primaryStage, world1));
+            primaryStage.close();
+        });
+
+        Button world2Button = new Button("Configure world 2");
+        world2Button.setPrefWidth(210);
+        world2Button.setOnMouseClicked(event -> {
+            this.configWorld(primaryStage, world2);
+            primaryStage.close();
+        });
+
+        HBox div = new HBox();
+        Label delay = new Label("Delay [ms]: ");
+        TextField delay_input = new TextField("10");
+        delay_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                Platform.runLater(() -> delay_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+        div.getChildren().addAll(delay, delay_input);
+
+        Button startButton = new Button("Start");
+        startButton.setPrefWidth(210);
+        startButton.setOnMouseClicked(event -> {
+            try {
+                this.setupWorld(primaryStage, world1, world2, Integer.parseInt(delay_input.getText()));
+            } catch (Exception e) {
+                if (e.getClass().equals(NumberFormatException.class)) {
+                    this.setupWorld(primaryStage, world1, world2, 0);
+                } else {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        main.getChildren().addAll(world1Button, world2Button, div, startButton);
+
+
+        Scene scene = new Scene(main, 235, 140);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+
     }
 
-    @Override
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("Zwierzaczki");
-        primaryStage.setResizable(true);
+    private void setupWorld(Stage primaryStage, SettingsWrapper world1Settings, SettingsWrapper world2Settings, long delay) {
+        primaryStage.close();
+
+        Stage stage = new Stage();
+        stage.setTitle("Evolution");
+        stage.setResizable(true);
+        stage.setMaximized(true);
 
 
-        // world setup
-        World world = new World(true, 30, 30, 10, 10, 100, 100, 1,
-                5, 10, 30);
-        world.addNextSimulatedDayObserver(this);
-        WorldWrapper wrapper = new WorldWrapper(world);
-        this.worlds.put(world, wrapper);
+        // worlds setup
+        World world1 = new World(delay, world1Settings.wrapAround, world1Settings.width, world1Settings.height, 10,
+                10, world1Settings.animals, world1Settings.energy, world1Settings.moveEnergy,
+                world1Settings.plantEnergy, world1Settings.steppePlants, world1Settings.junglePlants,
+                world1Settings.magic);
+        world1.addNextSimulatedDayObserver(this);
+        if (world1Settings.magic) world1.addMagicDayObserver(this);
+        WorldWrapper wrapper1 = new WorldWrapper(world1, "Left world");
+        this.worlds.put(world1, wrapper1);
 
-        World worldMagic = new World(false, 20, 20, 3, 3, 100, 100, 1,
-                50, 1, 5);
-        worldMagic.addNextSimulatedDayObserver(this);
-        WorldWrapper wrapperMagic = new WorldWrapper(worldMagic);
-        this.worlds.put(worldMagic, wrapperMagic);
+        World world2 = new World(delay, world2Settings.wrapAround, world2Settings.width, world2Settings.height, 10,
+                10, world2Settings.animals, world2Settings.energy, world2Settings.moveEnergy,
+                world2Settings.plantEnergy, world2Settings.steppePlants, world2Settings.junglePlants,
+                world2Settings.magic);
+        world2.addNextSimulatedDayObserver(this);
+        if (world2Settings.magic) world2.addMagicDayObserver(this);
+        WorldWrapper wrapper2 = new WorldWrapper(world2, "Right world");
+        this.worlds.put(world2, wrapper2);
 
 
         // split window into 2 columns
@@ -136,67 +212,198 @@ public class App extends Application implements INextSimulatedDayObserver {
 
         // create both columns
         ScrollPane leftScrollPane = new ScrollPane();
-        main.getChildren().addAll(leftScrollPane);
 
-        VBox leftPane = createWorldPane(wrapper);
-//        leftPane.setFillWidth(true);
+        VBox leftPane = createWorldPane(wrapper1);
         leftPane.prefWidthProperty().bind(leftScrollPane.widthProperty().subtract(20));
         leftScrollPane.setContent(leftPane);
 
 
         ScrollPane rightScrollPane = new ScrollPane();
-        main.getChildren().addAll(rightScrollPane);
 
-        VBox rightPane = createWorldPane(wrapperMagic);
-//        rightPane.setFillWidth(true);
+        VBox rightPane = createWorldPane(wrapper2);
         rightPane.prefWidthProperty().bind(rightScrollPane.widthProperty().subtract(20));
         rightScrollPane.setContent(rightPane);
 
+        main.getChildren().addAll(leftScrollPane, rightScrollPane);
 
         HBox.setHgrow(leftScrollPane, Priority.ALWAYS);
         HBox.setHgrow(rightScrollPane, Priority.ALWAYS);
 
 
-//        AnimationTimer frameRateMeter = new AnimationTimer() {
-//
-//            @Override
-//            public void handle(long now) {
-//                long oldFrameTime = frameTimes[frameTimeIndex];
-//                frameTimes[frameTimeIndex] = now;
-//                frameTimeIndex = (frameTimeIndex + 1) % frameTimes.length;
-//                if (frameTimeIndex == 0) {
-//                    arrayFilled = true;
-//                }
-//                if (arrayFilled) {
-//                    long elapsedNanos = now - oldFrameTime;
-//                    long elapsedNanosPerFrame = elapsedNanos / frameTimes.length;
-//                    double frameRate = 1_000_000_000.0 / elapsedNanosPerFrame;
-//                    label.setText(String.format("Current frame rate: %.3f", frameRate));
-//                }
-//            }
-//        };
-//
-//        frameRateMeter.start();
+        Scene worldsScene = new Scene(main, 1200, 500);
+        stage.setScene(worldsScene);
+        stage.show();
+
+        stage.setOnCloseRequest(event -> {
+            world1.stop();
+            world1.removeNextSimulatedDayObserver(this);
+            if (world1Settings.magic) world1.removeMagicDayObserver(this);
+            this.worlds.remove(world1);
+
+            world2.stop();
+            world2.removeNextSimulatedDayObserver(this);
+            if (world2Settings.magic) world2.removeMagicDayObserver(this);
+            this.worlds.remove(world2);
+
+            primaryStage.show();
+        });
+
+        world1.run();
+        world2.run();
+    }
+
+    private void configWorld(Stage primaryStage, SettingsWrapper wrapper) {
+        Stage stage = new Stage();
+        stage.setTitle("Config world");
+        stage.setResizable(false);
+
+        HBox config = new HBox();
+        config.setPadding(new Insets(10, 10, 10, 10));
+
+        Label width = new Label("Width: ");
+        TextField width_input = new TextField(Integer.toString(wrapper.width));
+        width_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                Platform.runLater(() -> width_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label height = new Label("Height: ");
+        TextField height_input = new TextField(Integer.toString(wrapper.height));
+        height_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                Platform.runLater(() -> height_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label wrapAround = new Label("Wrap around: ");
+        Button wrapAroundButton = new Button(Boolean.toString(wrapper.wrapAround));
+        wrapAroundButton.setMinWidth(150);
+        wrapAroundButton.setOnMouseClicked(event -> {
+            if (Boolean.parseBoolean(wrapAroundButton.getText())) {
+                wrapAroundButton.setText("false");
+            } else {
+                wrapAroundButton.setText("true");
+            }
+        });
+
+        Label animals = new Label("Starting animals: ");
+        TextField animals_input = new TextField(Integer.toString(wrapper.animals));
+        animals_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                Platform.runLater(() -> animals_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label energy = new Label("Starting energy: ");
+        TextField energy_input = new TextField(Float.toString(wrapper.energy));
+        energy_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                Platform.runLater(() -> energy_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label moveEnergy = new Label("Move energy: ");
+        TextField moveEnergy_input = new TextField(Float.toString(wrapper.moveEnergy));
+        moveEnergy_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*\\.?\\d*")) {
+                Platform.runLater(() -> moveEnergy_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label plantEnergy = new Label("Plant energy: ");
+        TextField plantEnergy_input = new TextField(Float.toString(wrapper.plantEnergy));
+        plantEnergy_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*\\.?\\d*")) {
+                Platform.runLater(() -> plantEnergy_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label steppePlants = new Label("Steppe plants: ");
+        TextField steppePlants_input = new TextField(Integer.toString(wrapper.steppePlants));
+        steppePlants_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                Platform.runLater(() -> steppePlants_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label junglePlants = new Label("Jungle plants: ");
+        TextField junglePlants_input = new TextField(Integer.toString(wrapper.junglePlants));
+        junglePlants_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                Platform.runLater(() -> junglePlants_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
 
 
-        Scene scene = new Scene(main, 1200, 600);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        Label magic = new Label("Is your world magic? ");
+        Button magicButton = new Button(Boolean.toString(wrapper.magic));
+        magicButton.setMinWidth(150);
+        magicButton.setOnMouseClicked(event -> {
+            switch (magicButton.getText()) {
+                case "false" -> magicButton.setText("true");
+                case "true" -> magicButton.setText("false");
+            }
+        });
 
-        world.run();
-        worldMagic.run();
+
+        Button confirm = new Button("Confirm world");
+
+        GridPane grid = new GridPane();
+        grid.prefWidthProperty().bind(config.widthProperty());
+
+        grid.addRow(0, width, width_input);
+        grid.addRow(1, height, height_input);
+        grid.addRow(2, wrapAround, wrapAroundButton);
+        grid.addRow(3, animals, animals_input);
+        grid.addRow(4, energy, energy_input);
+        grid.addRow(5, moveEnergy, moveEnergy_input);
+        grid.addRow(6, plantEnergy, plantEnergy_input);
+        grid.addRow(7, steppePlants, steppePlants_input);
+        grid.addRow(8, junglePlants, junglePlants_input);
+        grid.addRow(9, magic, magicButton);
+        grid.addRow(10, confirm);
+        config.getChildren().addAll(grid);
+
+        confirm.setOnMouseClicked(event -> {
+            try {
+                wrapper.width = Integer.parseInt(width_input.getText());
+                wrapper.height = Integer.parseInt(height_input.getText());
+                wrapper.wrapAround = Boolean.parseBoolean(wrapAroundButton.getText());
+                wrapper.animals = Integer.parseInt(animals_input.getText());
+                wrapper.energy = Float.parseFloat(energy_input.getText());
+                wrapper.moveEnergy = Float.parseFloat(moveEnergy_input.getText());
+                wrapper.plantEnergy = Float.parseFloat(plantEnergy_input.getText());
+                wrapper.steppePlants = Integer.parseInt(steppePlants_input.getText());
+                wrapper.junglePlants = Integer.parseInt(junglePlants_input.getText());
+                wrapper.magic = Boolean.parseBoolean(magicButton.getText());
+
+                primaryStage.show();
+                stage.close();
+            } catch (Exception e) {
+                new Alert(Alert.AlertType.ERROR, "One of inputs is empty!", ButtonType.CLOSE).showAndWait();
+            }
+        });
+
+        Scene scene = new Scene(config, 300, 300);
+        stage.setScene(scene);
+        stage.show();
+
+        stage.setOnCloseRequest(event -> primaryStage.show());
     }
 
     private VBox createWorldPane(WorldWrapper wrapper) {
         VBox pane = new VBox();
 
-        pane.setMinHeight(1200);
+//        pane.setMinHeight(1200);
         pane.setSpacing(10);
         pane.setPadding(new Insets(10, 10, 10, 10));
         pane.setFillWidth(true);
 
-        Canvas canvas = new Canvas(550, 550);
-        wrapper.setCanvasualizer(new MapCanvasualizer(wrapper.getWorld().getMap(), canvas, 550, 550));
+        Canvas canvas = new Canvas();
+        canvas.widthProperty().bind(pane.widthProperty().subtract(25));
+        canvas.heightProperty().bind(canvas.widthProperty().multiply((double) wrapper.getWorld().getMap().getHeight() / wrapper.getWorld().getMap().getWidth()));
+        wrapper.setCanvasualizer(new MapCanvasualizer(wrapper.getWorld().getMap(), canvas));
 
         Label label = new Label();
         pane.getChildren().add(label);
@@ -206,7 +413,7 @@ public class App extends Application implements INextSimulatedDayObserver {
             if (!wrapper.getWorld().isRunning()) label.setText(wrapper.getCanvasualizer().getClickedAnimal(event));
         });
 
-        Button button1 = new Button("toogle pause");
+        Button button1 = new Button("toggle pause");
         button1.setOnMouseClicked(event -> {
             if (wrapper.getWorld().isRunning()) {
                 wrapper.getWorld().stop();
@@ -239,7 +446,7 @@ public class App extends Application implements INextSimulatedDayObserver {
 
         // add series to chart
         List<XYChart.Series<Number, Number>> seriesList = wrapper.getSeries();
-        for(var series : seriesList){
+        for (var series : seriesList) {
             lineChart.getData().add(series);
         }
 //        lineChart.prefWidthProperty().bind(pane.prefWidthProperty());
@@ -265,8 +472,17 @@ public class App extends Application implements INextSimulatedDayObserver {
         }
     }
 
+    @Override
+    public void onMagicDay(World world) {
+        Platform.runLater(() -> this.worlds.get(world).announceMagicDay());
+    }
+
     private void updateUI(World world) {
-        WorldWrapper wrapper = this.worlds.get(world);
-        wrapper.updateUI();
+        try {
+            WorldWrapper wrapper = this.worlds.get(world);
+            wrapper.updateUI();
+        } catch (Exception ignored) {
+        } // when closing stage wrapper can be null
+
     }
 }

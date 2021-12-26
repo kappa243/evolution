@@ -15,15 +15,10 @@ public class Main {
         }
 
 //        try {
-//            World world = new World(true, 20, 20, 5, 5, 100, 30, 1,
-//                    30, 1, 3);
+//            World world = new World(300, true, 6, 6, 2, 2, 10, 30, 3,
+//                    3, 3, 5, true);
 //
-//            while (world.getDay() != 10000) {
-//                world.simulateDay();
-////                world.drawMap();
-//
-//                TimeUnit.MILLISECONDS.sleep(10);
-//            }
+//            world.run();
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }

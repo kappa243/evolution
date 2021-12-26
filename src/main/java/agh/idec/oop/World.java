@@ -7,6 +7,7 @@ import agh.idec.oop.field.FieldType;
 import agh.idec.oop.map.IMap;
 import agh.idec.oop.map.NormalMap;
 import agh.idec.oop.map.WrapAroundMap;
+import agh.idec.oop.observables.IMagicDayObserver;
 import agh.idec.oop.observables.INextSimulatedDayObserver;
 import agh.idec.oop.utils.WorldInformationLogger;
 
@@ -17,7 +18,9 @@ public class World {
     private final IMap map;
     private final WorldInformationLogger logger;
 
-    private HashSet<INextSimulatedDayObserver> observers = new HashSet<>();
+    private HashSet<INextSimulatedDayObserver> nextSimulatedDayObservers = new HashSet<>();
+    private HashSet<IMagicDayObserver> magicDayObservers = new HashSet<>();
+
 
     private final float startEnergy;
     private final float moveEnergy;
@@ -26,23 +29,26 @@ public class World {
     private final int plantsSteppe;
     private final int plantsJungle;
 
-    private final int magicSpawns;
-    private final float magicSpawnChance;
+    private final boolean isMagic;
+    private int magicDays = 3;
+
+    private final long delay;
 
     private int day = 0;
 
     private boolean isRunning = false;
 
-    public World(boolean wrapAround, int width, int height, int jungleWidth, int jungleHeight, int startAnimals,
+    public World(long delay, boolean wrapAround, int width, int height, int jungleWidth, int jungleHeight, int startAnimals,
                  float startEnergy, float moveEnergy, float plantEnergy, int plantsSteppe, int plantsJungle,
-                 int magicSpawns,
-                 float magicSpawnChance) {
+                 boolean isMagic) {
         // wrap around or not
         if (wrapAround) {
             this.map = new WrapAroundMap(width, height, jungleWidth, jungleHeight);
         } else {
             this.map = new NormalMap(width, height, jungleWidth, jungleHeight);
         }
+
+        this.delay = delay;
 
         this.startEnergy = startEnergy;
         this.moveEnergy = moveEnergy;
@@ -51,8 +57,7 @@ public class World {
         this.plantsSteppe = plantsSteppe;
         this.plantsJungle = plantsJungle;
 
-        this.magicSpawns = magicSpawns;
-        this.magicSpawnChance = magicSpawnChance;
+        this.isMagic = isMagic;
 
 
         // place starting animals
@@ -70,16 +75,15 @@ public class World {
         }
 
         growPlants();
-
         this.logger = new WorldInformationLogger(this);
-
-//        System.out.println(this.map);
 
     }
 
-    public World(boolean wrapAround, int width, int height, int jungleWidth, int jungleHeight, int startAnimals, float startEnergy, float moveEnergy,
+    public World(long delay, boolean wrapAround, int width, int height, int jungleWidth, int jungleHeight,
+                 int startAnimals, float startEnergy, float moveEnergy,
                  float plantEnergy, int plantsSteppe, int plantsJungle) {
-        this(wrapAround, width, height, jungleWidth, jungleHeight, startAnimals, startEnergy, moveEnergy, plantEnergy, plantsSteppe, plantsJungle, 0, 0);
+        this(delay, wrapAround, width, height, jungleWidth, jungleHeight, startAnimals, startEnergy, moveEnergy,
+                plantEnergy, plantsSteppe, plantsJungle, false);
     }
 
     public int getDay() {
@@ -94,7 +98,7 @@ public class World {
                 while (this.isRunning) {
                     try {
                         //noinspection BusyWait
-                        Thread.sleep(10);
+                        Thread.sleep(delay);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -119,14 +123,41 @@ public class World {
 
 
         this.logger.log();
-        System.out.println("Day: " + this.day);
-        System.out.println("Animals: " + this.logger.getAnimalsCount());
-        System.out.println("Plants: " + this.logger.getPlantsCount());
-        System.out.println("Average energy: " + this.logger.getAverageEnergy());
-        System.out.println("Average life length: " + this.logger.getAverageAnimalsLifeLength());
-        System.out.println("Average children count: " + this.logger.getAverageChildrenCount());
+//        System.out.println("Day: " + this.day);
+//        System.out.println("Animals: " + this.logger.getAnimalsCount());
+//        System.out.println("Plants: " + this.logger.getPlantsCount());
+//        System.out.println("Average energy: " + this.logger.getAverageEnergy());
+//        System.out.println("Average life length: " + this.logger.getAverageAnimalsLifeLength());
+//        System.out.println("Average children count: " + this.logger.getAverageChildrenCount());
+//
+//        System.out.println();
 
-        System.out.println();
+        if(isMagic && magicDays > 0 && this.map.getAnimals().size() == 5){
+            List<Field> fieldsSorted = new ArrayList<>(this.map.getFields().values().stream().filter(field -> !field.hasAnimal()).toList());
+
+            Collections.shuffle(fieldsSorted);
+            Iterator<Field> iter = fieldsSorted.iterator();
+
+            ArrayList<Animal> animals = new ArrayList<>();
+            for(Animal oldAnimal : this.map.getAnimals()) {
+                if(iter.hasNext()) {
+                    Vector2D position = iter.next().getPosition();
+                    Animal animal = new Animal(this.map, position, new ArrayList<>(oldAnimal.getGenotype()), startEnergy);
+                    animals.add(animal);
+                }else {
+                    break;
+                }
+            }
+
+            animals.forEach(animal -> {
+                this.map.place(animal);
+                this.logger.startLife(animal);
+            });
+
+//            System.out.println("MAGIC DAY");
+            this.magicDay();
+            magicDays--;
+        }
 
         makeDecisions();
         feedAnimals();
@@ -139,6 +170,8 @@ public class World {
 
         day++;
         this.logger.nextDay();
+
+//        this.drawMap();
     }
 
     /**
@@ -310,21 +343,39 @@ public class World {
         return map;
     }
 
+    public int getMagicDay() {
+        return 3 - magicDays;
+    }
+
     public WorldInformationLogger getLogger() {
         return logger;
     }
 
     public void addNextSimulatedDayObserver(INextSimulatedDayObserver observer) {
-        this.observers.add(observer);
+        this.nextSimulatedDayObservers.add(observer);
     }
 
     public void removeNextSimulatedDayObserver(INextSimulatedDayObserver observer) {
-        this.observers.remove(observer);
+        this.nextSimulatedDayObservers.remove(observer);
     }
 
     private void nextSimulatedDay() {
-        for (var observer : observers) {
+        for (var observer : nextSimulatedDayObservers) {
             observer.onNextSimulatedDay(this);
+        }
+    }
+
+    public void addMagicDayObserver(IMagicDayObserver observer) {
+        this.magicDayObservers.add(observer);
+    }
+
+    public void removeMagicDayObserver(IMagicDayObserver observer) {
+        this.magicDayObservers.remove(observer);
+    }
+
+    private void magicDay() {
+        for (var observer : magicDayObservers) {
+            observer.onMagicDay(this);
         }
     }
 

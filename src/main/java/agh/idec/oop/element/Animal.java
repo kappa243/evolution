@@ -185,6 +185,9 @@ public class Animal extends AbstractMapElement {
         };
     }
 
+    public ArrayList<Integer> getGenotype() {
+        return genotype;
+    }
 
     public void addPositionChangedObserver(IPositionChangedObserver observer) {
         this.positionChangedObserversobservers.add(observer);
@@ -202,16 +205,16 @@ public class Animal extends AbstractMapElement {
 
     @Override
     public String toString() {
-        return "■ ";
-//        return switch (this.direction) {
-//            case N -> "N ";
-//            case NE -> "NE";
-//            case E -> "E ";
-//            case SE -> "SE";
-//            case S -> "S ";
-//            case SW -> "SW";
-//            case W -> "W ";
-//            case NW -> "NW";
-//        };
+//        return "■ ";
+        return switch (this.direction) {
+            case N -> "N ";
+            case NE -> "NE";
+            case E -> "E ";
+            case SE -> "SE";
+            case S -> "S ";
+            case SW -> "SW";
+            case W -> "W ";
+            case NW -> "NW";
+        };
     }
 }
