@@ -1,11 +1,10 @@
 package agh.idec.oop.utils;
 
-import javafx.scene.chart.XYChart;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class CSVWriter {
@@ -34,10 +33,21 @@ public class CSVWriter {
         for (int i = 0; i < days; i++) {
             List<String> data = new ArrayList<>();
             data.add(Integer.toString(i));
+
             for (List<Number> list : dataList) {
                 data.add(list.get(i).toString());
             }
             this.writeData(data);
+        }
+
+
+        for(List<Number> list : dataList){
+            float sum = 0;
+
+            for (Number number : list) {
+                sum += number.floatValue();
+            }
+            this.writer.write("," + sum / list.size());
         }
 
         this.writer.close();
