@@ -106,20 +106,20 @@ public class MapCanvasualizer {
     }
 
 
-    public String getClickedAnimal(MouseEvent event) {
+    public Animal getClickedAnimal(MouseEvent event) {
         Vector2D position = new Vector2D((int) (event.getX() / this.width), (int) (event.getY() / this.height));
         Vector2D mappedPosition = mapCanvasPosToMapPos(position);
         PriorityQueue<Animal> animals = this.map.getAnimalsAt(mappedPosition);
 
-        Animal animal = animals.peek();
-        if(animal != null){
-            StringBuilder genotype = new StringBuilder();
-            for(var gene : animal.getGenotype()){
-                genotype.append(gene);
-            }
-            return "Selected animal gene: " + genotype;
-        }
-        return "";
+        return animals.peek();
+//        if(animal != null){
+//            StringBuilder genotype = new StringBuilder();
+//            for(var gene : animal.getGenotype()){
+//                genotype.append(gene);
+//            }
+//            return "Selected animal gene: " + genotype;
+//        }
+//        return "";
     }
 
     public void fillDominant(Vector2D position){

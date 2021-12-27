@@ -1,9 +1,11 @@
 package agh.idec.oop.gui;
 
 import agh.idec.oop.World;
+import agh.idec.oop.element.Animal;
 import agh.idec.oop.field.Field;
 import agh.idec.oop.observables.IMagicDayObserver;
 import agh.idec.oop.observables.INextSimulatedDayObserver;
+import agh.idec.oop.observables.ISelectedAnimalActionsObserver;
 import agh.idec.oop.utils.CSVWriter;
 import agh.idec.oop.utils.MapCanvasualizer;
 import agh.idec.oop.utils.WorldInformationLogger;
@@ -25,14 +27,17 @@ import javafx.stage.Stage;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 
 public class App extends Application implements INextSimulatedDayObserver, IMagicDayObserver {
 
-    private class WorldWrapper {
+    private class WorldWrapper implements ISelectedAnimalActionsObserver {
 
         final private World world;
         final private String world_name;
@@ -45,14 +50,24 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         final private XYChart.Series<Number, Number> averageLifeLength = new XYChart.Series<>();
         final private XYChart.Series<Number, Number> averageChildren = new XYChart.Series<>();
 
-        final private List<Number> animalsCountData = new LinkedList<>();
-        final private List<Number> plantsCountData = new LinkedList<>();
-        final private List<Number> averageEnergyData = new LinkedList<>();
-        final private List<Number> averageLifeLengthData = new LinkedList<>();
-        final private List<Number> averageChildrenData = new LinkedList<>();
+        final private List<Number> animalsCountData = new ArrayList<>();
+        final private List<Number> plantsCountData = new ArrayList<>();
+        final private List<Number> averageEnergyData = new ArrayList<>();
+        final private List<Number> averageLifeLengthData = new ArrayList<>();
+        final private List<Number> averageChildrenData = new ArrayList<>();
 
-        private Label genotype;
+        private Label dominantLabel;
         private NumberAxis xAxis;
+
+        private Animal selectedAnimal = null;
+        private int childrenCount = 0;
+        private List<Animal> selectedDescendants = new ArrayList<>();
+        private boolean isDead = false;
+
+        private Label genotypeLabel;
+        private Label childrenLabel;
+        private Label descendantsLabel;
+        private Label deathLabel;
 
         public WorldWrapper(World world, String world_name) {
             this.world = world;
@@ -78,14 +93,29 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             this.xAxis = xAxis;
         }
 
-        public void setGenotype(Label genotype) {
-            this.genotype = genotype;
+        public void setDominantLabel(Label dominantLabel){
+            this.dominantLabel = dominantLabel;
         }
 
         public World getWorld() {
             return this.world;
         }
 
+        public void setGenotypeLabel(Label genotypeLabel) {
+            this.genotypeLabel = genotypeLabel;
+        }
+
+        public void setChildrenLabel(Label childrenLabel) {
+            this.childrenLabel = childrenLabel;
+        }
+
+        public void setDescendantsLabel(Label descendantsLabel) {
+            this.descendantsLabel = descendantsLabel;
+        }
+
+        public void setDeathLabel(Label deathLabel) {
+            this.deathLabel = deathLabel;
+        }
 
         public void announceMagicDay() {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Magic day " + this.world.getMagicDay() + " happened at " + this.world_name + "!", ButtonType.OK);
@@ -143,14 +173,15 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         }
 
-        private void updateGenotype() {
-            this.genotype.setText("Dominant genotype: " + this.logger.getDominantGenotype());
+        private void updateDominant() {
+            this.dominantLabel.setText("Dominant genotype: " + this.logger.getDominantGenotype());
         }
 
         private void updateUI() {
             this.canvasualizer.updateCanvas();
             this.addDataToSeries();
-            this.updateGenotype();
+            this.updateDominant();
+            this.drawSelectedAnimalInfo();
         }
 
         public void drawDominants() {
@@ -163,6 +194,62 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
                 }
             }
         }
+
+        private void drawSelectedAnimalInfo() {
+            if (this.selectedAnimal != null) {
+                this.childrenLabel.setText("Children: " + this.childrenCount);
+                this.descendantsLabel.setText("Descendants: " + this.selectedDescendants.size());
+                this.deathLabel.setText("Is dead: " + this.isDead);
+            }
+        }
+
+        public void setSelectedAnimal(Animal selectedAnimal) {
+            if (this.selectedAnimal != null) this.selectedAnimal.removeSelectedAnimalActionsObserver(this);
+            this.selectedAnimal = selectedAnimal;
+            this.clearDescendants();
+            this.childrenCount = 0;
+            this.isDead = false;
+
+            if (this.selectedAnimal != null) {
+                StringBuilder genotype = new StringBuilder();
+                for (var gene : this.selectedAnimal.getGenotype()) {
+                    genotype.append(gene);
+                }
+                this.genotypeLabel.setText("Genotype: " + genotype);
+
+                this.selectedAnimal.addSelectedAnimalActionsObserver(this);
+            } else {
+                this.genotypeLabel.setText("Genotype: ");
+                this.childrenLabel.setText("Children: ");
+                this.descendantsLabel.setText("Descendants: ");
+                this.deathLabel.setText("Is dead: ");
+            }
+        }
+
+        private void addDescendant(Animal animal) {
+            this.selectedDescendants.add(animal);
+            animal.addSelectedAnimalActionsObserver(this);
+        }
+
+        private void clearDescendants() {
+            for (Animal animal : this.selectedDescendants) {
+                animal.removeSelectedAnimalActionsObserver(this);
+            }
+            this.selectedDescendants = new ArrayList<>();
+        }
+
+        @Override
+        public void selectedAnimalDeath(Animal animal) {
+            this.isDead = true;
+        }
+
+        @Override
+        public void selectedAnimalBreed(Animal animal, Animal newborn) {
+            if (animal.equals(this.selectedAnimal)) {
+                this.childrenCount++;
+            }
+            this.addDescendant(newborn);
+        }
     }
 
     private class SettingsWrapper {
@@ -172,10 +259,10 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         public boolean wrapAround = true;
         public int animals = 100;
         public float energy = 100;
-        public float moveEnergy = 1.5f;
+        public float moveEnergy = 1.0f;
         public float plantEnergy = 10;
-        public int steppePlants = 5;
-        public int junglePlants = 10;
+        public int steppePlants = 1;
+        public int junglePlants = 3;
         public boolean magic = false;
     }
 
@@ -472,42 +559,19 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         pane.setPadding(new Insets(10, 10, 10, 10));
         pane.setFillWidth(true);
 
-        Canvas canvas = new Canvas();
-        canvas.widthProperty().bind(pane.widthProperty().subtract(25));
-        canvas.heightProperty().bind(canvas.widthProperty().multiply((double) wrapper.getWorld().getMap().getHeight() / wrapper.getWorld().getMap().getWidth()));
-        wrapper.setCanvasualizer(new MapCanvasualizer(wrapper.getWorld().getMap(), canvas));
+        HBox div1 = new HBox();
+        pane.getChildren().add(div1);
+        div1.setSpacing(5);
 
-        Label label = new Label();
-        pane.getChildren().add(label);
-
-        canvas.setOnMouseClicked(event -> {
-            // follow animal
-            if (!wrapper.getWorld().isRunning()) label.setText(wrapper.getCanvasualizer().getClickedAnimal(event));
-        });
-
-        Button button1 = new Button("toggle pause");
-        button1.setOnMouseClicked(event -> {
+        Button pauseButton = new Button("Toggle pause");
+        pauseButton.setOnMouseClicked(event -> {
             if (wrapper.getWorld().isRunning()) {
                 wrapper.getWorld().stop();
             } else {
                 wrapper.getWorld().run();
             }
         });
-        pane.getChildren().addAll(button1, canvas);
-
-
-        HBox div = new HBox();
-        div.setSpacing(5);
-        Button showDominantButton = new Button("Show dominant genotypes");
-        showDominantButton.setOnMouseClicked(event -> {
-            if (!wrapper.getWorld().isRunning()) {
-                Platform.runLater(wrapper::drawDominants);
-            }
-        });
-        Label dominantGenotype = new Label("Dominant genotype: ");
-        wrapper.setGenotype(dominantGenotype);
-        div.getChildren().addAll(showDominantButton, dominantGenotype);
-        pane.getChildren().add(div);
+        pane.getChildren().add(pauseButton);
 
         Button saveDataButton = new Button("Save data to csv file");
         saveDataButton.setOnMouseClicked(event -> {
@@ -516,6 +580,53 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         });
         pane.getChildren().add(saveDataButton);
+
+        Label genotypeLabel = new Label("Genotype: ");
+        Label childrenLabel = new Label("Children: ");
+        Label descendantsLabel = new Label("Descendants: ");
+        Label deathLabel = new Label("Is dead: ");
+        wrapper.setGenotypeLabel(genotypeLabel);
+        wrapper.setChildrenLabel(childrenLabel);
+        wrapper.setDescendantsLabel(descendantsLabel);
+        wrapper.setDeathLabel(deathLabel);
+
+        div1.getChildren().addAll(pauseButton, saveDataButton, genotypeLabel, childrenLabel, descendantsLabel, deathLabel);
+
+
+        Canvas canvas = new Canvas();
+        canvas.widthProperty().bind(pane.widthProperty().subtract(25));
+        canvas.heightProperty().bind(canvas.widthProperty().multiply((double) wrapper.getWorld().getMap().getHeight() / wrapper.getWorld().getMap().getWidth()));
+        wrapper.setCanvasualizer(new MapCanvasualizer(wrapper.getWorld().getMap(), canvas));
+
+        pane.getChildren().add(canvas);
+
+        canvas.setOnMouseClicked(event -> {
+            // select animal
+            Animal animal = null;
+            if (!wrapper.getWorld().isRunning()) {
+                animal = wrapper.getCanvasualizer().getClickedAnimal(event);
+            }
+
+            Animal finalAnimal = animal;
+            Platform.runLater(() -> {
+                wrapper.setSelectedAnimal(finalAnimal);
+                wrapper.drawSelectedAnimalInfo();
+            });
+        });
+
+        HBox div2 = new HBox();
+        div2.setSpacing(5);
+        Button showDominantButton = new Button("Show dominant genotypes");
+        showDominantButton.setOnMouseClicked(event -> {
+            if (!wrapper.getWorld().isRunning()) {
+                Platform.runLater(wrapper::drawDominants);
+            }
+        });
+        Label dominantGenotype = new Label("Dominant genotype: ");
+        wrapper.setDominantLabel(dominantGenotype);
+        div2.getChildren().addAll(showDominantButton, dominantGenotype);
+        pane.getChildren().add(div2);
+
 
 
         //chart

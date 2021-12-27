@@ -195,9 +195,8 @@ public class World {
     /**
      * Remove all animals with 0 or less energy.
      *
-     * @return Number of dead animals remove from map.
      */
-    private int removeDeadAnimals() {
+    private void removeDeadAnimals() {
         ArrayList<Animal> animals = new ArrayList<>();
         for (Animal animal : this.map.getAnimals()) {
             if (animal.getEnergy() <= 0) {
@@ -207,10 +206,9 @@ public class World {
 
         for (Animal animal : animals) {
             this.logger.endLife(animal);
+            animal.selectedAnimalDeath();
             this.map.pop(animal);
         }
-
-        return animals.size();
     }
 
 

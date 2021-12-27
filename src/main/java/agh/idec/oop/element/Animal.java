@@ -4,6 +4,7 @@ import agh.idec.oop.Vector2D;
 import agh.idec.oop.map.IMap;
 import agh.idec.oop.map.WrapAroundMap;
 import agh.idec.oop.observables.IPositionChangedObserver;
+import agh.idec.oop.observables.ISelectedAnimalActionsObserver;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ public class Animal extends AbstractMapElement {
 
     private final IMap map;
     private final HashSet<IPositionChangedObserver> positionChangedObserversobservers = new HashSet<>();
+    private final HashSet<ISelectedAnimalActionsObserver> selectedAnimalActionsObservers = new HashSet<>();
 
     public Animal(IMap map, Vector2D position, ArrayList<Integer> genotype, float energy) {
         super(position);
@@ -158,7 +160,9 @@ public class Animal extends AbstractMapElement {
             strong.energy -= 0.5 * startEnergy;
             weak.energy -= 0.5 * startEnergy;
 
-            return new Animal(this.map, this.getPosition(), gene, startEnergy);
+            Animal newborn = new Animal(this.map, this.getPosition(), gene, startEnergy);
+            this.selectedAnimalBreed(newborn);
+            return newborn;
         } else {
             return null;
         }
@@ -200,6 +204,26 @@ public class Animal extends AbstractMapElement {
     private void positionChanged(Vector2D oldPosition) {
         for (var observer : positionChangedObserversobservers) {
             observer.positionChanged(this, oldPosition);
+        }
+    }
+
+    public void addSelectedAnimalActionsObserver(ISelectedAnimalActionsObserver observer) {
+        this.selectedAnimalActionsObservers.add(observer);
+    }
+
+    public void removeSelectedAnimalActionsObserver(ISelectedAnimalActionsObserver observer) {
+        this.selectedAnimalActionsObservers.remove(observer);
+    }
+
+    public void selectedAnimalDeath() {
+        for (var observer : selectedAnimalActionsObservers) {
+            observer.selectedAnimalDeath(this);
+        }
+    }
+
+    private void selectedAnimalBreed(Animal newborn){
+        for(var observer : selectedAnimalActionsObservers){
+            observer.selectedAnimalBreed(this, newborn);
         }
     }
 
