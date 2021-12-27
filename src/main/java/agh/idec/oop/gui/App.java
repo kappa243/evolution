@@ -1,8 +1,10 @@
 package agh.idec.oop.gui;
 
 import agh.idec.oop.World;
+import agh.idec.oop.field.Field;
 import agh.idec.oop.observables.IMagicDayObserver;
 import agh.idec.oop.observables.INextSimulatedDayObserver;
+import agh.idec.oop.utils.CSVWriter;
 import agh.idec.oop.utils.MapCanvasualizer;
 import agh.idec.oop.utils.WorldInformationLogger;
 import javafx.application.Application;
@@ -18,11 +20,12 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
@@ -41,6 +44,14 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         final private XYChart.Series<Number, Number> averageEnergy = new XYChart.Series<>();
         final private XYChart.Series<Number, Number> averageLifeLength = new XYChart.Series<>();
         final private XYChart.Series<Number, Number> averageChildren = new XYChart.Series<>();
+
+        final private List<Number> animalsCountData = new LinkedList<>();
+        final private List<Number> plantsCountData = new LinkedList<>();
+        final private List<Number> averageEnergyData = new LinkedList<>();
+        final private List<Number> averageLifeLengthData = new LinkedList<>();
+        final private List<Number> averageChildrenData = new LinkedList<>();
+
+        private Label genotype;
         private NumberAxis xAxis;
 
         public WorldWrapper(World world, String world_name) {
@@ -67,9 +78,14 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             this.xAxis = xAxis;
         }
 
+        public void setGenotype(Label genotype) {
+            this.genotype = genotype;
+        }
+
         public World getWorld() {
             return this.world;
         }
+
 
         public void announceMagicDay() {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Magic day " + this.world.getMagicDay() + " happened at " + this.world_name + "!", ButtonType.OK);
@@ -79,28 +95,73 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             alert.setOnCloseRequest(event -> this.world.run());
         }
 
+        public void saveData(Stage stage) {
+            List<String> header = Arrays.asList("day", "animals_count", "plants_count", "average_energy", "average_life_length", "average_children_count");
+            List<List<Number>> dataList = Arrays.asList(this.animalsCountData, this.plantsCountData, this.averageEnergyData, this.averageLifeLengthData, this.averageChildrenData);
+
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save stats");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV files", "*.csv"));
+
+            File file = fileChooser.showSaveDialog(stage);
+            try {
+                CSVWriter csvWriter = new CSVWriter(file);
+                csvWriter.writeSeries(header, dataList);
+            } catch (IOException e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, e.toString(), ButtonType.OK);
+                alert.show();
+            }
+        }
+
         public List<XYChart.Series<Number, Number>> getSeries() {
             return Arrays.asList(this.animalsCount, this.plantsCount, this.averageEnergy, this.averageLifeLength, this.averageChildren);
         }
 
         private void addDataToSeries() {
             this.animalsCount.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getAnimalsCount()));
+            this.animalsCountData.add(this.logger.getAnimalsCount());
+
             this.plantsCount.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getPlantsCount()));
+            this.plantsCountData.add(this.logger.getPlantsCount());
+
             this.averageEnergy.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getAverageEnergy()));
+            this.averageEnergyData.add(this.logger.getAverageEnergy());
+
             this.averageLifeLength.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getAverageAnimalsLifeLength()));
+            this.averageLifeLengthData.add(this.logger.getAverageAnimalsLifeLength());
+
             this.averageChildren.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getAverageChildrenCount()));
+            this.averageChildrenData.add(this.logger.getAverageChildrenCount());
+
+
+            xAxis.setLowerBound(Math.max(0, this.world.getDay() - 500));
+            xAxis.setUpperBound(this.world.getDay());
 
             for (var series : this.getSeries()) {
                 if (series.getData().size() > 500)
                     series.getData().remove(0);
-                xAxis.setLowerBound(Math.max(0, this.world.getDay() - 500));
-                xAxis.setUpperBound(this.world.getDay());
             }
+        }
+
+        private void updateGenotype() {
+            this.genotype.setText("Dominant genotype: " + this.logger.getDominantGenotype());
         }
 
         private void updateUI() {
             this.canvasualizer.updateCanvas();
             this.addDataToSeries();
+            this.updateGenotype();
+        }
+
+        public void drawDominants() {
+            for (Field field : this.world.getMap().getFields().values()) {
+                if (field.hasAnimal()) {
+                    //noinspection ConstantConditions // we checked that field has at least one animal
+                    if (field.getAnimals().peek().getGenotype().equals(this.logger.getGenotype())) {
+                        this.canvasualizer.fillDominant(field.getPosition());
+                    }
+                }
+            }
         }
     }
 
@@ -110,7 +171,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         public boolean wrapAround = true;
         public int animals = 100;
         public float energy = 100;
-        public float moveEnergy = 1;
+        public float moveEnergy = 1.5f;
         public float plantEnergy = 10;
         public int steppePlants = 5;
         public int junglePlants = 10;
@@ -213,14 +274,14 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         // create both columns
         ScrollPane leftScrollPane = new ScrollPane();
 
-        VBox leftPane = createWorldPane(wrapper1);
+        VBox leftPane = createWorldPane(stage, wrapper1);
         leftPane.prefWidthProperty().bind(leftScrollPane.widthProperty().subtract(20));
         leftScrollPane.setContent(leftPane);
 
 
         ScrollPane rightScrollPane = new ScrollPane();
 
-        VBox rightPane = createWorldPane(wrapper2);
+        VBox rightPane = createWorldPane(stage, wrapper2);
         rightPane.prefWidthProperty().bind(rightScrollPane.widthProperty().subtract(20));
         rightScrollPane.setContent(rightPane);
 
@@ -392,7 +453,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         stage.setOnCloseRequest(event -> primaryStage.show());
     }
 
-    private VBox createWorldPane(WorldWrapper wrapper) {
+    private VBox createWorldPane(Stage stage, WorldWrapper wrapper) {
         VBox pane = new VBox();
 
 //        pane.setMinHeight(1200);
@@ -423,8 +484,30 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         });
         pane.getChildren().addAll(button1, canvas);
 
-        //chart
 
+        HBox div = new HBox();
+        div.setSpacing(5);
+        Button showDominantButton = new Button("Show dominant genotypes");
+        showDominantButton.setOnMouseClicked(event -> {
+            if (!wrapper.getWorld().isRunning()) {
+                Platform.runLater(wrapper::drawDominants);
+            }
+        });
+        Label dominantGenotype = new Label("Dominant genotype: ");
+        wrapper.setGenotype(dominantGenotype);
+        div.getChildren().addAll(showDominantButton, dominantGenotype);
+        pane.getChildren().add(div);
+
+        Button saveDataButton = new Button("Save data to csv file");
+        saveDataButton.setOnMouseClicked(event -> {
+            if (!wrapper.getWorld().isRunning()) {
+                Platform.runLater(() -> wrapper.saveData(stage));
+            }
+        });
+        pane.getChildren().add(saveDataButton);
+
+
+        //chart
         final NumberAxis xAxis = new NumberAxis();
         final NumberAxis yAxis = new NumberAxis();
         xAxis.setLabel("Day");
@@ -439,17 +522,15 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         xAxis.setUpperBound(0);
 
         final LineChart<Number, Number> lineChart = new LineChart<>(xAxis, yAxis);
-        lineChart.setTitle("Realtime JavaFX Charts");
+        lineChart.setTitle("Stats");
         lineChart.setAnimated(false);
         lineChart.setCreateSymbols(false);
-
 
         // add series to chart
         List<XYChart.Series<Number, Number>> seriesList = wrapper.getSeries();
         for (var series : seriesList) {
             lineChart.getData().add(series);
         }
-//        lineChart.prefWidthProperty().bind(pane.prefWidthProperty());
         lineChart.prefWidthProperty().bind(pane.widthProperty());
 
         pane.getChildren().add(lineChart);

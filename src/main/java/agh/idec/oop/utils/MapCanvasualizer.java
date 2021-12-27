@@ -19,12 +19,8 @@ import java.util.stream.Collectors;
  * Converts map into 2D canvas with colorized elements.
  */
 public class MapCanvasualizer {
-    //Color.rgb(255, 200, 200);
-    //Color.rgb(255, 100, 0);
-    private static final int MIN_ENERGY_GREEN = 200;
-    private static final int MIN_ENERGY_BLUE = 200;
-    private static final int MAX_ENERGY_GREEN = 100;
-    private static final int MAX_ENERGY_BLUE = 0;
+
+    private static final Color DOMINANT_COLOR = Color.hsb(285, 1, 1);
 
     private static final Color ENERGY_COLOR = Color.hsb(30, 1, 1);
 
@@ -116,9 +112,25 @@ public class MapCanvasualizer {
         PriorityQueue<Animal> animals = this.map.getAnimalsAt(mappedPosition);
 
         Animal animal = animals.peek();
-        return "X: " + position.getX() + ", Y: " + position.getY() + ", Energy: " + (animal != null ? animal.getEnergy() : (this.map.getFields().get(mappedPosition)).hasPlant() ? "Grass" : "nothing");
+        if(animal != null){
+            StringBuilder genotype = new StringBuilder();
+            for(var gene : animal.getGenotype()){
+                genotype.append(gene);
+            }
+            return "Selected animal gene: " + genotype;
+        }
+        return "";
     }
 
+    public void fillDominant(Vector2D position){
+        position = mapCanvasPosToMapPos(position);
+        GraphicsContext gc = this.canvas.getGraphicsContext2D();
+        this.width = this.canvas.getWidth() / map.getWidth();
+        this.height = this.canvas.getHeight() / map.getHeight();
+
+        gc.setFill(DOMINANT_COLOR);
+        gc.fillOval(position.getX() * width + width / 4, position.getY() * height + height / 4, width / 2, height / 2);
+    }
 
     /**
      * Transform vector of map position to 2D canvas coordinates (starting from 0 without negative numbers)

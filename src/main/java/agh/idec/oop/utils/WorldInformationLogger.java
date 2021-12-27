@@ -1,9 +1,12 @@
 package agh.idec.oop.utils;
 
-import agh.idec.oop.element.Animal;
 import agh.idec.oop.World;
+import agh.idec.oop.element.Animal;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Gather information from World and pass it to graphic interface.
@@ -15,8 +18,6 @@ public class WorldInformationLogger {
     private int animalsCount = 0;
     private int plantsCount = 0;
 
-    private int topGenotype; //?
-
     private float averageEnergy = 0;
 
     private float averageAnimalsLifeLength = 0;
@@ -26,6 +27,8 @@ public class WorldInformationLogger {
 
     private float averageChildrenCount = 0;
     private final HashMap<Animal, Integer> animalsChildrenCount = new HashMap<>();
+
+    private List<Integer> genotype;
 
     public WorldInformationLogger(World world) {
         this.world = world;
@@ -41,6 +44,7 @@ public class WorldInformationLogger {
         this.setAverageEnergy();
         this.setAverageLifeLength();
         this.setAverageChildrenCount();
+        this.dominantGenotype();
     }
 
     public void nextDay() {
@@ -80,11 +84,31 @@ public class WorldInformationLogger {
         for (int i : this.animalsChildrenCount.values())
             sum += i;
 
-        if(this.animalsChildrenCount.size() != 0){
-            this.averageChildrenCount = (float)sum / this.animalsChildrenCount.size();
-        }else{
+        if (this.animalsChildrenCount.size() != 0) {
+            this.averageChildrenCount = (float) sum / this.animalsChildrenCount.size();
+        } else {
             this.averageChildrenCount = 0;
         }
+    }
+
+    private void dominantGenotype() {
+        HashMap<List<Integer>, Integer> genotypes = new HashMap<>();
+        for (Animal animal : this.world.getMap().getAnimals()) {
+            Integer count = genotypes.get(animal.getGenotype());
+            if (count != null) {
+                genotypes.replace(animal.getGenotype(), count+1);
+            }else{
+                genotypes.put(animal.getGenotype(), 1);
+            }
+        }
+        Map.Entry<List<Integer>, Integer> dominant = null;
+        for (Map.Entry<List<Integer>, Integer> entry : genotypes.entrySet()){
+            if(dominant ==null || entry.getValue() > dominant.getValue()){
+                dominant = entry;
+            }
+        }
+
+        this.genotype = new ArrayList<>(dominant != null ? dominant.getKey() : new ArrayList<>());
     }
 
     public void newChildren(Animal animal) {
@@ -121,5 +145,21 @@ public class WorldInformationLogger {
 
     public float getAverageChildrenCount() {
         return averageChildrenCount;
+    }
+
+    public List<Integer> getGenotype() {
+        return genotype;
+    }
+
+    public String getDominantGenotype(){
+        StringBuilder stringBuilder = new StringBuilder();
+        if(this.genotype != null){
+            for(int gene : genotype){
+                stringBuilder.append(gene);
+            }
+        }else{
+            return "";
+        }
+        return stringBuilder.toString();
     }
 }
