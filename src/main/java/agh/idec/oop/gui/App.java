@@ -168,6 +168,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
     private class SettingsWrapper {
         public int width = 20;
         public int height = 20;
+        public float jungleRatio = 0.1f;
         public boolean wrapAround = true;
         public int animals = 100;
         public float energy = 100;
@@ -249,8 +250,8 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
 
 
         // worlds setup
-        World world1 = new World(delay, world1Settings.wrapAround, world1Settings.width, world1Settings.height, 10,
-                10, world1Settings.animals, world1Settings.energy, world1Settings.moveEnergy,
+        World world1 = new World(delay, world1Settings.wrapAround, world1Settings.width, world1Settings.height,
+                world1Settings.jungleRatio, world1Settings.animals, world1Settings.energy, world1Settings.moveEnergy,
                 world1Settings.plantEnergy, world1Settings.steppePlants, world1Settings.junglePlants,
                 world1Settings.magic);
         world1.addNextSimulatedDayObserver(this);
@@ -258,8 +259,8 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         WorldWrapper wrapper1 = new WorldWrapper(world1, "Left world");
         this.worlds.put(world1, wrapper1);
 
-        World world2 = new World(delay, world2Settings.wrapAround, world2Settings.width, world2Settings.height, 10,
-                10, world2Settings.animals, world2Settings.energy, world2Settings.moveEnergy,
+        World world2 = new World(delay, world2Settings.wrapAround, world2Settings.width, world2Settings.height,
+                world2Settings.jungleRatio, world2Settings.animals, world2Settings.energy, world2Settings.moveEnergy,
                 world2Settings.plantEnergy, world2Settings.steppePlants, world2Settings.junglePlants,
                 world2Settings.magic);
         world2.addNextSimulatedDayObserver(this);
@@ -334,6 +335,14 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         height_input.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue.matches("\\d*")) {
                 Platform.runLater(() -> height_input.setText(newValue.replaceAll("[\\D+]", "")));
+            }
+        });
+
+        Label jungleRatio = new Label("Jungle ratio [0.0-1.0]: ");
+        TextField jungleRatio_input = new TextField(Float.toString(wrapper.jungleRatio));
+        jungleRatio_input.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*\\.?\\d*")) {
+                Platform.runLater(() -> jungleRatio_input.setText(newValue.replaceAll("[\\D+]", "")));
             }
         });
 
@@ -415,21 +424,23 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
 
         grid.addRow(0, width, width_input);
         grid.addRow(1, height, height_input);
-        grid.addRow(2, wrapAround, wrapAroundButton);
-        grid.addRow(3, animals, animals_input);
-        grid.addRow(4, energy, energy_input);
-        grid.addRow(5, moveEnergy, moveEnergy_input);
-        grid.addRow(6, plantEnergy, plantEnergy_input);
-        grid.addRow(7, steppePlants, steppePlants_input);
-        grid.addRow(8, junglePlants, junglePlants_input);
-        grid.addRow(9, magic, magicButton);
-        grid.addRow(10, confirm);
+        grid.addRow(2, jungleRatio, jungleRatio_input);
+        grid.addRow(3, wrapAround, wrapAroundButton);
+        grid.addRow(4, animals, animals_input);
+        grid.addRow(5, energy, energy_input);
+        grid.addRow(6, moveEnergy, moveEnergy_input);
+        grid.addRow(7, plantEnergy, plantEnergy_input);
+        grid.addRow(8, steppePlants, steppePlants_input);
+        grid.addRow(9, junglePlants, junglePlants_input);
+        grid.addRow(10, magic, magicButton);
+        grid.addRow(11, confirm);
         config.getChildren().addAll(grid);
 
         confirm.setOnMouseClicked(event -> {
             try {
                 wrapper.width = Integer.parseInt(width_input.getText());
                 wrapper.height = Integer.parseInt(height_input.getText());
+                wrapper.jungleRatio = Float.parseFloat(jungleRatio_input.getText());
                 wrapper.wrapAround = Boolean.parseBoolean(wrapAroundButton.getText());
                 wrapper.animals = Integer.parseInt(animals_input.getText());
                 wrapper.energy = Float.parseFloat(energy_input.getText());
@@ -446,7 +457,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         });
 
-        Scene scene = new Scene(config, 300, 300);
+        Scene scene = new Scene(config, 300, 325);
         stage.setScene(scene);
         stage.show();
 

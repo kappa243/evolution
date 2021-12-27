@@ -38,9 +38,17 @@ public class World {
 
     private boolean isRunning = false;
 
-    public World(long delay, boolean wrapAround, int width, int height, int jungleWidth, int jungleHeight, int startAnimals,
+    public World(long delay, boolean wrapAround, int width, int height, float jungleRatio, int startAnimals,
                  float startEnergy, float moveEnergy, float plantEnergy, int plantsSteppe, int plantsJungle,
                  boolean isMagic) {
+
+        int area = width * height;
+        float sideRatio = (float)width/height;
+
+        int jungleHeight = (int) Math.round(Math.sqrt(area * jungleRatio / sideRatio));
+        int jungleWidth = Math.round(jungleHeight*sideRatio);
+
+
         // wrap around or not
         if (wrapAround) {
             this.map = new WrapAroundMap(width, height, jungleWidth, jungleHeight);
@@ -79,10 +87,10 @@ public class World {
 
     }
 
-    public World(long delay, boolean wrapAround, int width, int height, int jungleWidth, int jungleHeight,
+    public World(long delay, boolean wrapAround, int width, int height, float jungleRatio,
                  int startAnimals, float startEnergy, float moveEnergy,
                  float plantEnergy, int plantsSteppe, int plantsJungle) {
-        this(delay, wrapAround, width, height, jungleWidth, jungleHeight, startAnimals, startEnergy, moveEnergy,
+        this(delay, wrapAround, width, height, jungleRatio, startAnimals, startEnergy, moveEnergy,
                 plantEnergy, plantsSteppe, plantsJungle, false);
     }
 
