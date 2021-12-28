@@ -1,0 +1,4 @@
+# Programowanie obietkowe - Evolution
+Projekt symulacji ewolucyjnej.
+
+Grupa 7 - Szymon Idec | szymonidec@student.agh.edu.pl
