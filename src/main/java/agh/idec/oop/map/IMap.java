@@ -9,7 +9,6 @@ import agh.idec.oop.field.Field;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.PriorityQueue;
-import java.util.TreeSet;
 
 /**
  * The interface responsible for interacting with the map of World.

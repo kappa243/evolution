@@ -18,8 +18,8 @@ public class World {
     private final IMap map;
     private final WorldInformationLogger logger;
 
-    private HashSet<INextSimulatedDayObserver> nextSimulatedDayObservers = new HashSet<>();
-    private HashSet<IMagicDayObserver> magicDayObservers = new HashSet<>();
+    private final HashSet<INextSimulatedDayObserver> nextSimulatedDayObservers = new HashSet<>();
+    private final HashSet<IMagicDayObserver> magicDayObservers = new HashSet<>();
 
 
     private final float startEnergy;
@@ -41,12 +41,12 @@ public class World {
     public World(long delay, boolean wrapAround, int width, int height, float jungleRatio, int startAnimals,
                  float startEnergy, float moveEnergy, float plantEnergy, int plantsSteppe, int plantsJungle,
                  boolean isMagic) {
-
+        // calculate jungle area
         int area = width * height;
-        float sideRatio = (float)width/height;
+        float sideRatio = (float) width / height;
 
-        int jungleHeight = (int) Math.round(Math.sqrt(area * jungleRatio / sideRatio));
-        int jungleWidth = Math.round(jungleHeight*sideRatio);
+        int jungleHeight = (int) Math.floor(Math.sqrt(area * jungleRatio / sideRatio));
+        int jungleWidth = (int) Math.floor(jungleHeight * sideRatio);
 
 
         // wrap around or not
@@ -69,7 +69,7 @@ public class World {
 
 
         // place starting animals
-        Vector2D center = new Vector2D(Math.round(width / 2f), Math.round(height / 2f));
+        Vector2D center = new Vector2D((int) Math.floor(width / 2f), (int) Math.floor(height / 2f));
         for (int i = 0; i < startAnimals; i++) {
             ArrayList<Integer> gene = new ArrayList<>();
             Random rand = new Random();
@@ -94,11 +94,19 @@ public class World {
                 plantEnergy, plantsSteppe, plantsJungle, false);
     }
 
+    /**
+     * Return current day of simulation.
+     *
+     * @return Day of simulation as int.
+     */
     public int getDay() {
         return this.day;
     }
 
 
+    /**
+     * Resume simulation at World.
+     */
     public void run() {
         if (!this.isRunning) {
             this.isRunning = true;
@@ -116,10 +124,18 @@ public class World {
         }
     }
 
+    /**
+     * Pause simulation at World.
+     */
     public void stop() {
         this.isRunning = false;
     }
 
+    /**
+     * Check if simulation is running at World.
+     *
+     * @return True if simulation is running otherwise false.
+     */
     public boolean isRunning() {
         return isRunning;
     }
@@ -131,6 +147,7 @@ public class World {
 
 
         this.logger.log();
+//        // debug
 //        System.out.println("Day: " + this.day);
 //        System.out.println("Animals: " + this.logger.getAnimalsCount());
 //        System.out.println("Plants: " + this.logger.getPlantsCount());
@@ -140,19 +157,19 @@ public class World {
 //
 //        System.out.println();
 
-        if(isMagic && magicDays > 0 && this.map.getAnimals().size() == 5){
-            List<Field> fieldsSorted = new ArrayList<>(this.map.getFields().values().stream().filter(field -> !field.hasAnimal()).toList());
+        if (isMagic && magicDays > 0 && this.map.getAnimals().size() == 5) {
+            List<Field> fieldsSorted = new ArrayList<>(this.map.getFields().values().stream().filter(field -> !field.isEmpty()).toList());
 
             Collections.shuffle(fieldsSorted);
             Iterator<Field> iter = fieldsSorted.iterator();
 
             ArrayList<Animal> animals = new ArrayList<>();
-            for(Animal oldAnimal : this.map.getAnimals()) {
-                if(iter.hasNext()) {
+            for (Animal oldAnimal : this.map.getAnimals()) {
+                if (iter.hasNext()) {
                     Vector2D position = iter.next().getPosition();
                     Animal animal = new Animal(this.map, position, new ArrayList<>(oldAnimal.getGenotype()), startEnergy);
                     animals.add(animal);
-                }else {
+                } else {
                     break;
                 }
             }
@@ -194,7 +211,6 @@ public class World {
 
     /**
      * Remove all animals with 0 or less energy.
-     *
      */
     private void removeDeadAnimals() {
         ArrayList<Animal> animals = new ArrayList<>();
@@ -224,13 +240,9 @@ public class World {
 
     /**
      * Feed the strongest animal on plant field.
-     *
-     * @return Number of fed animals.
      */
-    private int feedAnimals() {
+    private void feedAnimals() {
         ArrayList<Plant> plants = new ArrayList<>();
-
-        int fed = 0;
 
         for (Plant plant : this.map.getPlants()) {
             Vector2D position = plant.getPosition();
@@ -256,7 +268,6 @@ public class World {
             if (strongestAnimals.size() > 0) { // at least one animal at position
                 for (Animal animal : strongestAnimals) {
                     animal.addEnergy(plantEnergy / strongestAnimals.size());
-                    fed++;
                 }
 
                 plants.add(plant);
@@ -266,14 +277,12 @@ public class World {
         for (Plant plant : plants) {
             this.map.pop(plant);
         }
-
-        return fed;
     }
 
     /**
      * Breed animals on map.
      */
-    private int breedAnimals() {
+    private void breedAnimals() {
         // set of positions where animals exist (animals fed).
         HashSet<Vector2D> positions = new HashSet<>();
 
@@ -282,8 +291,6 @@ public class World {
                 positions.add(animal.getPosition());
             }
         }
-
-        int borned = 0;
 
         for (Vector2D position : positions) {
             PriorityQueue<Animal> animals = this.map.getAnimalsAt(position);
@@ -302,16 +309,13 @@ public class World {
                         this.map.place(newborn);
 
                         this.logger.startLife(newborn);
-                        this.logger.newChildren(strong1);
-                        this.logger.newChildren(strong2);
-
-                        borned++;
+                        this.logger.newChild(strong1);
+                        this.logger.newChild(strong2);
                     }
                 }
             }
         }
 
-        return borned;
     }
 
 
@@ -345,17 +349,27 @@ public class World {
 
     }
 
+    /**
+     * Return map of World.
+     */
     public IMap getMap() {
         return map;
     }
 
+    /**
+     * Return number of magic day that occurred.
+     */
     public int getMagicDay() {
         return 3 - magicDays;
     }
 
+    /**
+     * Return information logger of world.
+     */
     public WorldInformationLogger getLogger() {
         return logger;
     }
+
 
     public void addNextSimulatedDayObserver(INextSimulatedDayObserver observer) {
         this.nextSimulatedDayObservers.add(observer);
@@ -386,7 +400,7 @@ public class World {
     }
 
     /**
-     * Preview of animals and grasses on world map.
+     * Logs preview of animals and grasses at world map.
      */
     public void drawMap() {
         System.out.print(map.toString());

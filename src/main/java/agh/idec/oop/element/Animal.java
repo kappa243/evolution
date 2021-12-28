@@ -162,6 +162,7 @@ public class Animal extends AbstractMapElement {
 
             Animal newborn = new Animal(this.map, this.getPosition(), gene, startEnergy);
             this.selectedAnimalBreed(newborn);
+            partner.selectedAnimalBreed(newborn);
             return newborn;
         } else {
             return null;
@@ -189,6 +190,11 @@ public class Animal extends AbstractMapElement {
         };
     }
 
+    /**
+     * Return genotype of animal
+     *
+     * @return ArrayList of a genotype consisting of genes.
+     */
     public ArrayList<Integer> getGenotype() {
         return genotype;
     }
@@ -221,8 +227,8 @@ public class Animal extends AbstractMapElement {
         }
     }
 
-    private void selectedAnimalBreed(Animal newborn){
-        for(var observer : selectedAnimalActionsObservers){
+    public void selectedAnimalBreed(Animal newborn) {
+        for (var observer : selectedAnimalActionsObservers) {
             observer.selectedAnimalBreed(this, newborn);
         }
     }

@@ -27,17 +27,14 @@ import javafx.stage.Stage;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 
 public class App extends Application implements INextSimulatedDayObserver, IMagicDayObserver {
 
-    private class WorldWrapper implements ISelectedAnimalActionsObserver {
+    private static class WorldWrapper implements ISelectedAnimalActionsObserver {
 
         final private World world;
         final private String world_name;
@@ -61,7 +58,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
 
         private Animal selectedAnimal = null;
         private int childrenCount = 0;
-        private List<Animal> selectedDescendants = new ArrayList<>();
+        private Set<Animal> selectedDescendants = new HashSet<>();
         private boolean isDead = false;
 
         private Label genotypeLabel;
@@ -93,7 +90,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             this.xAxis = xAxis;
         }
 
-        public void setDominantLabel(Label dominantLabel){
+        public void setDominantLabel(Label dominantLabel) {
             this.dominantLabel = dominantLabel;
         }
 
@@ -117,6 +114,13 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             this.deathLabel = deathLabel;
         }
 
+        public List<XYChart.Series<Number, Number>> getSeries() {
+            return Arrays.asList(this.animalsCount, this.plantsCount, this.averageEnergy, this.averageLifeLength, this.averageChildren);
+        }
+
+        /**
+         * Announces magic day using alert dialog.
+         */
         public void announceMagicDay() {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Magic day " + this.world.getMagicDay() + " happened at " + this.world_name + "!", ButtonType.OK);
             alert.show();
@@ -125,6 +129,9 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             alert.setOnCloseRequest(event -> this.world.run());
         }
 
+        /**
+         * Save data of world to csv file.
+         */
         public void saveData(Stage stage) {
             List<String> header = Arrays.asList("day", "animals_count", "plants_count", "average_energy", "average_life_length", "average_children_count");
             List<List<Number>> dataList = Arrays.asList(this.animalsCountData, this.plantsCountData, this.averageEnergyData, this.averageLifeLengthData, this.averageChildrenData);
@@ -143,10 +150,9 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         }
 
-        public List<XYChart.Series<Number, Number>> getSeries() {
-            return Arrays.asList(this.animalsCount, this.plantsCount, this.averageEnergy, this.averageLifeLength, this.averageChildren);
-        }
-
+        /**
+         * Add current day data to chart.
+         */
         private void addDataToSeries() {
             this.animalsCount.getData().add(new XYChart.Data<>(this.world.getDay(), this.logger.getAnimalsCount()));
             this.animalsCountData.add(this.logger.getAnimalsCount());
@@ -173,17 +179,26 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         }
 
-        private void updateDominant() {
+        /**
+         * Update current dominant genotype at world.
+         */
+        private void updateDominantGenotype() {
             this.dominantLabel.setText("Dominant genotype: " + this.logger.getDominantGenotype());
         }
 
+        /**
+         * Update UI of world.
+         */
         private void updateUI() {
             this.canvasualizer.updateCanvas();
             this.addDataToSeries();
-            this.updateDominant();
+            this.updateDominantGenotype();
             this.drawSelectedAnimalInfo();
         }
 
+        /**
+         * Draw dominants on canvas.
+         */
         public void drawDominants() {
             for (Field field : this.world.getMap().getFields().values()) {
                 if (field.hasAnimal()) {
@@ -195,6 +210,9 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         }
 
+        /**
+         * Draw info about tracked animal.
+         */
         private void drawSelectedAnimalInfo() {
             if (this.selectedAnimal != null) {
                 this.childrenLabel.setText("Children: " + this.childrenCount);
@@ -203,6 +221,11 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         }
 
+        /**
+         * Select new animal that will be tracked.
+         *
+         * @param selectedAnimal Animal to be tracked.
+         */
         public void setSelectedAnimal(Animal selectedAnimal) {
             if (this.selectedAnimal != null) this.selectedAnimal.removeSelectedAnimalActionsObserver(this);
             this.selectedAnimal = selectedAnimal;
@@ -226,23 +249,38 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         }
 
+        /**
+         * Add descendant animal of tracked animal.
+         */
         private void addDescendant(Animal animal) {
             this.selectedDescendants.add(animal);
             animal.addSelectedAnimalActionsObserver(this);
         }
 
+        /**
+         * CLear all descendants of tracked animal.
+         */
         private void clearDescendants() {
             for (Animal animal : this.selectedDescendants) {
                 animal.removeSelectedAnimalActionsObserver(this);
             }
-            this.selectedDescendants = new ArrayList<>();
+            this.selectedDescendants = new HashSet<>();
         }
 
+        /**
+         * Inform wrapper about tracked animal death.
+         */
         @Override
         public void selectedAnimalDeath(Animal animal) {
             this.isDead = true;
         }
 
+        /**
+         * Inform wrapper about tracked animal newborn.
+         *
+         * @param animal  Parent animal (if not tracked newborn will not be duplicated).
+         * @param newborn Newborn animal.
+         */
         @Override
         public void selectedAnimalBreed(Animal animal, Animal newborn) {
             if (animal.equals(this.selectedAnimal)) {
@@ -252,7 +290,10 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         }
     }
 
-    private class SettingsWrapper {
+    /**
+     * Store config variables of world.
+     */
+    private static class SettingsWrapper {
         public int width = 20;
         public int height = 20;
         public float jungleRatio = 0.1f;
@@ -266,7 +307,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         public boolean magic = false;
     }
 
-    private HashMap<World, WorldWrapper> worlds = new HashMap<>();
+    private final HashMap<World, WorldWrapper> worlds = new HashMap<>();
 
     @Override
     public void start(Stage primaryStage) {
@@ -281,21 +322,21 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         SettingsWrapper world2 = new SettingsWrapper();
 
         Button world1Button = new Button("Configure world 1");
-        world1Button.setPrefWidth(210);
+        world1Button.setPrefWidth(245);
         world1Button.setOnMouseClicked(event -> {
             Platform.runLater(() -> this.configWorld(primaryStage, world1));
             primaryStage.close();
         });
 
         Button world2Button = new Button("Configure world 2");
-        world2Button.setPrefWidth(210);
+        world2Button.setPrefWidth(245);
         world2Button.setOnMouseClicked(event -> {
             this.configWorld(primaryStage, world2);
             primaryStage.close();
         });
 
         HBox div = new HBox();
-        Label delay = new Label("Delay [ms]: ");
+        Label delay = new Label("Refresh rate [ms]: ");
         TextField delay_input = new TextField("10");
         delay_input.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue.matches("\\d*")) {
@@ -305,7 +346,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         div.getChildren().addAll(delay, delay_input);
 
         Button startButton = new Button("Start");
-        startButton.setPrefWidth(210);
+        startButton.setPrefWidth(245);
         startButton.setOnMouseClicked(event -> {
             try {
                 this.setupWorld(primaryStage, world1, world2, Integer.parseInt(delay_input.getText()));
@@ -321,13 +362,21 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         main.getChildren().addAll(world1Button, world2Button, div, startButton);
 
 
-        Scene scene = new Scene(main, 235, 140);
+        Scene scene = new Scene(main, 265, 140);
         primaryStage.setScene(scene);
         primaryStage.show();
 
     }
 
-    private void setupWorld(Stage primaryStage, SettingsWrapper world1Settings, SettingsWrapper world2Settings, long delay) {
+    /**
+     * Open main stage with world maps.
+     *
+     * @param primaryStage   Stage from main stage is opened.
+     * @param world1Settings Settings of World1.
+     * @param world2Settings Settings of World2.
+     * @param refreshRate    Refresh rate
+     */
+    private void setupWorld(Stage primaryStage, SettingsWrapper world1Settings, SettingsWrapper world2Settings, long refreshRate) {
         primaryStage.close();
 
         Stage stage = new Stage();
@@ -337,7 +386,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
 
 
         // worlds setup
-        World world1 = new World(delay, world1Settings.wrapAround, world1Settings.width, world1Settings.height,
+        World world1 = new World(refreshRate, world1Settings.wrapAround, world1Settings.width, world1Settings.height,
                 world1Settings.jungleRatio, world1Settings.animals, world1Settings.energy, world1Settings.moveEnergy,
                 world1Settings.plantEnergy, world1Settings.steppePlants, world1Settings.junglePlants,
                 world1Settings.magic);
@@ -346,7 +395,7 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         WorldWrapper wrapper1 = new WorldWrapper(world1, "Left world");
         this.worlds.put(world1, wrapper1);
 
-        World world2 = new World(delay, world2Settings.wrapAround, world2Settings.width, world2Settings.height,
+        World world2 = new World(refreshRate, world2Settings.wrapAround, world2Settings.width, world2Settings.height,
                 world2Settings.jungleRatio, world2Settings.animals, world2Settings.energy, world2Settings.moveEnergy,
                 world2Settings.plantEnergy, world2Settings.steppePlants, world2Settings.junglePlants,
                 world2Settings.magic);
@@ -362,14 +411,14 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         // create both columns
         ScrollPane leftScrollPane = new ScrollPane();
 
-        VBox leftPane = createWorldPane(stage, wrapper1);
+        VBox leftPane = createWorldBox(stage, wrapper1);
         leftPane.prefWidthProperty().bind(leftScrollPane.widthProperty().subtract(20));
         leftScrollPane.setContent(leftPane);
 
 
         ScrollPane rightScrollPane = new ScrollPane();
 
-        VBox rightPane = createWorldPane(stage, wrapper2);
+        VBox rightPane = createWorldBox(stage, wrapper2);
         rightPane.prefWidthProperty().bind(rightScrollPane.widthProperty().subtract(20));
         rightScrollPane.setContent(rightPane);
 
@@ -401,6 +450,12 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         world2.run();
     }
 
+    /**
+     * Open configuration stage of give World wrapper.
+     *
+     * @param primaryStage Stage from main stage is opened.
+     * @param wrapper      Wrapper of world.
+     */
     private void configWorld(Stage primaryStage, SettingsWrapper wrapper) {
         Stage stage = new Stage();
         stage.setTitle("Config world");
@@ -544,17 +599,23 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
             }
         });
 
-        Scene scene = new Scene(config, 300, 325);
+        Scene scene = new Scene(config, 280, 325);
         stage.setScene(scene);
         stage.show();
 
         stage.setOnCloseRequest(event -> primaryStage.show());
     }
 
-    private VBox createWorldPane(Stage stage, WorldWrapper wrapper) {
+    /**
+     * Create pane box of world.
+     *
+     * @param stage   Stage where to pane will be created.
+     * @param wrapper Wrapper of world.
+     * @return VBox containing world view.
+     */
+    private VBox createWorldBox(Stage stage, WorldWrapper wrapper) {
         VBox pane = new VBox();
 
-//        pane.setMinHeight(1200);
         pane.setSpacing(10);
         pane.setPadding(new Insets(10, 10, 10, 10));
         pane.setFillWidth(true);
@@ -628,7 +689,6 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         pane.getChildren().add(div2);
 
 
-
         //chart
         final NumberAxis xAxis = new NumberAxis();
         final NumberAxis yAxis = new NumberAxis();
@@ -661,6 +721,11 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
     }
 
 
+    /**
+     * Called when next day was simulated.
+     *
+     * @param world World where next day was simulated.
+     */
     @Override
     public void onNextSimulatedDay(World world) {
         // creating future task will ensure us that we will see updated UI before next simulation day will start
@@ -669,23 +734,29 @@ public class App extends Application implements INextSimulatedDayObserver, IMagi
         Platform.runLater(futureUI);
 
         try {
+            // wait for ui draw
             futureUI.get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Called when magic day happened at world.
+     */
     @Override
     public void onMagicDay(World world) {
         Platform.runLater(() -> this.worlds.get(world).announceMagicDay());
     }
 
+    /**
+     * Update UI of given World.
+     */
     private void updateUI(World world) {
         try {
             WorldWrapper wrapper = this.worlds.get(world);
             wrapper.updateUI();
-        } catch (Exception ignored) {
-        } // when closing stage wrapper can be null
-
+        } catch (Exception ignored) { // when closing stage wrapper can be null
+        }
     }
 }

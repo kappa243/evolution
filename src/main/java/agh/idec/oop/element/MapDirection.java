@@ -26,6 +26,12 @@ public enum MapDirection {
         };
     }
 
+    /**
+     * Return next direction clockwise.
+     *
+     * @param num How many times next element, ex. for value 2 return second direction clockwise from current.
+     * @return Direction.
+     */
     public MapDirection next(int num) {
         MapDirection direction = this;
         for (int i = 0; i < num; i++) {
@@ -34,6 +40,12 @@ public enum MapDirection {
         return direction;
     }
 
+    /**
+     * Return next direction counterclockwise.
+     *
+     * @param num How many times previous element, ex. for value 2 return second direction counterclockwise from current.
+     * @return Direction.
+     */
     public MapDirection previous(int num) {
         MapDirection direction = this;
         for (int i = 0; i < num; i++) {
@@ -55,6 +67,9 @@ public enum MapDirection {
         };
     }
 
+    /**
+     * Return unit Vector2D of given direction.
+     */
     public Vector2D toUnitVector() {
         return switch (this) {
             case N -> new Vector2D(0, 1);

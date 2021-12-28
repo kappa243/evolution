@@ -19,22 +19,6 @@ public class Vector2D {
         this.y = y;
     }
 
-    public boolean precedes(Vector2D other) {
-        return (this.x <= other.x && this.y <= other.y);
-    }
-
-    public boolean follows(Vector2D other) {
-        return (this.x >= other.x && this.y >= other.y);
-    }
-
-    public Vector2D topRight(Vector2D other) {
-        return new Vector2D(Math.max(this.x, other.x), Math.max(this.y, other.y));
-    }
-
-    public Vector2D bottomLeft(Vector2D other) {
-        return new Vector2D(Math.min(this.x, other.x), Math.min(this.y, other.y));
-    }
-
     public Vector2D add(Vector2D other) {
         return new Vector2D(this.x + other.x, this.y + other.y);
     }
@@ -43,9 +27,6 @@ public class Vector2D {
         return new Vector2D(this.x - other.x, this.y - other.y);
     }
 
-    public Vector2D opposite() {
-        return new Vector2D(-this.x, -this.y);
-    }
 
     public boolean equals(Object other) {
         if (this == other)

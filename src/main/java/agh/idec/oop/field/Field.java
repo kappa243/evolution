@@ -3,12 +3,8 @@ package agh.idec.oop.field;
 import agh.idec.oop.Vector2D;
 import agh.idec.oop.element.Animal;
 import agh.idec.oop.element.Plant;
-import com.sun.source.tree.Tree;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.PriorityQueue;
-import java.util.TreeSet;
 
 public class Field implements IMapField {
     private final FieldType type;
@@ -30,6 +26,11 @@ public class Field implements IMapField {
         this.position = position;
     }
 
+    /**
+     * Return position of field.
+     *
+     * @return Vector
+     */
     public Vector2D getPosition() {
         return position;
     }
@@ -44,13 +45,13 @@ public class Field implements IMapField {
     }
 
     @Override
-    public boolean add(Animal animal) {
-        return animals.add(animal);
+    public void add(Animal animal) {
+        animals.add(animal);
     }
 
     @Override
-    public boolean remove(Animal animal) {
-        return animals.remove(animal);
+    public void remove(Animal animal) {
+        animals.remove(animal);
     }
 
     @Override

@@ -2,18 +2,15 @@ package agh.idec.oop.utils;
 
 import agh.idec.oop.Vector2D;
 import agh.idec.oop.element.Animal;
-import agh.idec.oop.element.IMapElement;
-import agh.idec.oop.element.Plant;
 import agh.idec.oop.field.Field;
 import agh.idec.oop.field.FieldType;
 import agh.idec.oop.map.IMap;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.PriorityQueue;
 
 
 /**
- * Convert a map into a string.<br>
+ * Convert a map into a string representation.<br>
  * <p>
  * Based on <a href="https://github.com/apohllo/obiektowe-lab/blob/master/lab4/java/MapVisualizer.java">apohllo's MapVisualizer</a>
  */
@@ -59,11 +56,12 @@ public class MapVisualizer {
         Field field = this.map.getFields().get(position);
         PriorityQueue<Animal> animals = field.getAnimals();
 
-        if(field.hasPlant()){
+        if (field.hasPlant()) {
             result = "\u001b[35m" + field.getPlant() + "\u001b[0m";
-        }else if (field.hasAnimal()){
-            result = "\u001b[31m" +  animals.peek() + "\u001b[0m"; // just get animal, irrelevant which one
-        }else{
+        } else if (field.hasAnimal()) {
+            // get animal with most energy at current position
+            result = "\u001b[31m" + animals.peek() + "\u001b[0m";
+        } else {
             result = EMPTY_CELL;
         }
 
@@ -88,7 +86,7 @@ public class MapVisualizer {
         return builder.toString();
     }
 
-    private String drawField(int x, int y){
+    private String drawField(int x, int y) {
         StringBuilder builder = new StringBuilder();
         if (this.map.getFields().get(new Vector2D(x, y)).getType() == FieldType.JUNGLE) {
             builder.append("\u001b[42m");

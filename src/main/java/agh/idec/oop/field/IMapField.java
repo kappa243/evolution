@@ -1,12 +1,9 @@
 package agh.idec.oop.field;
 
 import agh.idec.oop.element.Animal;
-import agh.idec.oop.element.IMapElement;
 import agh.idec.oop.element.Plant;
 
-import java.util.List;
 import java.util.PriorityQueue;
-import java.util.TreeSet;
 
 public interface IMapField {
     /**
@@ -19,21 +16,17 @@ public interface IMapField {
 
     /**
      * Add animal to field.
-     *
-     * @return True if animal added. False if animal exists.
      */
-    boolean add(Animal animal);
+    void add(Animal animal);
 
     /**
      * Remove animal from field.
-     *
-     * @return True if animal remove. False if animal does not exists.
      */
-    boolean remove(Animal animal);
+    void remove(Animal animal);
 
 
     /**
-     * Return list of elements on field.
+     * Return list of elements at field.
      *
      * @return List of map elements.
      */
@@ -48,7 +41,7 @@ public interface IMapField {
     Plant getPlant();
 
     /**
-     * Set plant on field.
+     * Set plant at field.
      *
      * @param plant Added plant.
      */
@@ -62,9 +55,9 @@ public interface IMapField {
     Plant removePlant();
 
     /**
-     * Check if plant is on field.
+     * Check if plant is at field.
      *
-     * @return True if plant exists on field.
+     * @return True if plant exists at field otherwise false.
      */
     boolean hasPlant();
 
@@ -72,7 +65,7 @@ public interface IMapField {
     /**
      * Check if animal is on field.
      *
-     * @return True if animal exists on field.
+     * @return True if animal exists on field otherwise false.
      */
     boolean hasAnimal();
 

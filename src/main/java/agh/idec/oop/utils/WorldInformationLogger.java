@@ -28,7 +28,7 @@ public class WorldInformationLogger {
     private float averageChildrenCount = 0;
     private final HashMap<Animal, Integer> animalsChildrenCount = new HashMap<>();
 
-    private List<Integer> genotype;
+    private List<Integer> dominantGenotype;
 
     public WorldInformationLogger(World world) {
         this.world = world;
@@ -38,6 +38,9 @@ public class WorldInformationLogger {
         }
     }
 
+    /**
+     * Collect information from world.
+     */
     public void log() {
         this.setAnimalsCount();
         this.setPlantsCount();
@@ -47,10 +50,16 @@ public class WorldInformationLogger {
         this.dominantGenotype();
     }
 
+    /**
+     * Inform logger about next day.
+     */
     public void nextDay() {
         this.animalsLifeLengths.forEach((animal, old) -> this.animalsLifeLengths.replace(animal, old + 1));
     }
 
+    /**
+     * Calculate average energy of living animals.
+     */
     private void setAverageEnergy() {
         float sumEnergy = 0;
         for (Animal animal : this.world.getMap().getAnimals()) {
@@ -63,14 +72,23 @@ public class WorldInformationLogger {
         }
     }
 
+    /**
+     * Calculate count of living animals.
+     */
     private void setAnimalsCount() {
         this.animalsCount = this.world.getMap().getAnimals().size();
     }
 
+    /**
+     * Calculate count of plants.
+     */
     private void setPlantsCount() {
         this.plantsCount = this.world.getMap().getPlants().size();
     }
 
+    /**
+     * Calculate average life of dead animals.
+     */
     private void setAverageLifeLength() {
         if (this.deadAnimalsCount > 0) {
             this.averageAnimalsLifeLength = (float) this.deadAnimalsLifeLength / deadAnimalsCount;
@@ -79,6 +97,9 @@ public class WorldInformationLogger {
         }
     }
 
+    /**
+     * Calculate average children per animal.
+     */
     private void setAverageChildrenCount() {
         int sum = 0;
         for (int i : this.animalsChildrenCount.values())
@@ -91,35 +112,53 @@ public class WorldInformationLogger {
         }
     }
 
+    /**
+     * Get dominant genotype of living animals.
+     */
     private void dominantGenotype() {
         HashMap<List<Integer>, Integer> genotypes = new HashMap<>();
         for (Animal animal : this.world.getMap().getAnimals()) {
             Integer count = genotypes.get(animal.getGenotype());
             if (count != null) {
-                genotypes.replace(animal.getGenotype(), count+1);
-            }else{
+                genotypes.replace(animal.getGenotype(), count + 1);
+            } else {
                 genotypes.put(animal.getGenotype(), 1);
             }
         }
         Map.Entry<List<Integer>, Integer> dominant = null;
-        for (Map.Entry<List<Integer>, Integer> entry : genotypes.entrySet()){
-            if(dominant ==null || entry.getValue() > dominant.getValue()){
+        for (Map.Entry<List<Integer>, Integer> entry : genotypes.entrySet()) {
+            if (dominant == null || entry.getValue() > dominant.getValue()) {
                 dominant = entry;
             }
         }
 
-        this.genotype = new ArrayList<>(dominant != null ? dominant.getKey() : new ArrayList<>());
+        this.dominantGenotype = new ArrayList<>(dominant != null ? dominant.getKey() : new ArrayList<>());
     }
 
-    public void newChildren(Animal animal) {
+    /**
+     * Inform logger about new child.
+     *
+     * @param animal Newborn animal.
+     */
+    public void newChild(Animal animal) {
         this.animalsChildrenCount.replace(animal, this.animalsChildrenCount.get(animal) + 1);
     }
 
+    /**
+     * Inform logger about new animal.
+     *
+     * @param animal Animal that started new life.
+     */
     public void startLife(Animal animal) {
         this.animalsLifeLengths.put(animal, 0);
         this.animalsChildrenCount.put(animal, 0);
     }
 
+    /**
+     * Inform logger about dead animal.
+     *
+     * @param animal Animal that ended life.
+     */
     public void endLife(Animal animal) {
         this.deadAnimalsCount++;
         this.deadAnimalsLifeLength += this.animalsLifeLengths.get(animal);
@@ -127,37 +166,58 @@ public class WorldInformationLogger {
         this.animalsChildrenCount.remove(animal);
     }
 
+    /**
+     * Return count of living animals at map.
+     */
     public int getAnimalsCount() {
         return animalsCount;
     }
 
+    /**
+     * Return count of plants at map.
+     */
     public int getPlantsCount() {
         return plantsCount;
     }
 
+    /**
+     * Return average energy of living animals.
+     */
     public float getAverageEnergy() {
         return averageEnergy;
     }
 
+    /**
+     * Return average life length of dead animals.
+     */
     public float getAverageAnimalsLifeLength() {
         return averageAnimalsLifeLength;
     }
 
+    /**
+     * Return average count of children per animal.
+     */
     public float getAverageChildrenCount() {
         return averageChildrenCount;
     }
 
+    /**
+     * Return dominant genotype.
+     */
     public List<Integer> getGenotype() {
-        return genotype;
+        return dominantGenotype;
     }
 
-    public String getDominantGenotype(){
+    /**
+     * Return dominant genotype as String.
+     */
+    public String getDominantGenotype() {
         StringBuilder stringBuilder = new StringBuilder();
-        if(this.genotype != null){
-            for(int gene : genotype){
+        if (this.dominantGenotype != null) {
+            for (int gene : dominantGenotype) {
                 stringBuilder.append(gene);
             }
-        }else{
+        } else {
             return "";
         }
         return stringBuilder.toString();

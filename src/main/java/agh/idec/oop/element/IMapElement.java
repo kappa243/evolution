@@ -6,7 +6,7 @@ public interface IMapElement {
     /**
      * Return position of element.
      *
-     * @return Current position of element.
+     * @return Vector2d position of element.
      */
     Vector2D getPosition();
 
@@ -14,7 +14,7 @@ public interface IMapElement {
     /**
      * Set position of element.
      *
-     * @param position Position of element to set.
+     * @param position Vector2D position of element to set.
      */
     void setPosition(Vector2D position);
 }

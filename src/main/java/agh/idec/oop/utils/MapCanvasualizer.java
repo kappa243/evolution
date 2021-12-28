@@ -32,8 +32,8 @@ public class MapCanvasualizer {
     private final Canvas canvas;
 
 
-    private Vector2D top_limit;
-    private Vector2D bottom_limit;
+    private final Vector2D top_limit;
+    private final Vector2D bottom_limit;
     private double height;
     private double width;
 
@@ -60,7 +60,7 @@ public class MapCanvasualizer {
 
         fields.values().forEach(field -> {
             Vector2D map_pos = field.getPosition();
-            Vector2D pos = mapMapPosToCanvasPos(map_pos, top_limit, bottom_limit);
+            Vector2D pos = mapMapPosToCanvasPos(map_pos);
 
 
             switch (field.getType()) {
@@ -78,51 +78,29 @@ public class MapCanvasualizer {
                 gc.fillOval(pos.getX() * width + width / 4, pos.getY() * height + height / 4, width / 2, height / 2);
             }
         });
-
-
-//        for (int x = lower_limit.getX(); x <= top_limit.getX(); x++) {
-//            for (int y = lower_limit.getY(); y <= top_limit.getY(); y++) {
-//                Vector2D map_pos = new Vector2D(x, y);
-//                Vector2D pos = mapPointToGrid(map_pos, top_limit, lower_limit);
-//
-//                Field field = map.getFields().get(map_pos);
-//
-//                switch (field.getType()) {
-//                    case STEPPE -> gc.setFill(STEPPE_COLOR);
-//                    case JUNGLE -> gc.setFill(JUNGLE_COLOR);
-//                }
-//                gc.fillRect(pos.getX() * width, pos.getY() * height, width, height);
-//
-//
-//                if (field.hasPlant()) {
-//                    gc.setFill(PLANT_COLOR);
-//                    gc.fillOval(pos.getX() * width + width / 4, pos.getY() * height + height / 4, width / 2, height / 2);
-//                } else if (field.hasAnimal()) {
-//                    gc.setFill(getEnergyColor(field.getAnimals().peek(), maxEnergy));
-//                    gc.fillOval(pos.getX() * width + width / 4, pos.getY() * height + height / 4, width / 2, height / 2);
-//                }
-//            }
-//        }
     }
 
 
+    /**
+     * Return animal at clicked position of canvas.
+     *
+     * @param event MouseEvent of clicked canvas.
+     * @return Animal at position or null if it does not exist.
+     */
     public Animal getClickedAnimal(MouseEvent event) {
         Vector2D position = new Vector2D((int) (event.getX() / this.width), (int) (event.getY() / this.height));
         Vector2D mappedPosition = mapCanvasPosToMapPos(position);
         PriorityQueue<Animal> animals = this.map.getAnimalsAt(mappedPosition);
 
         return animals.peek();
-//        if(animal != null){
-//            StringBuilder genotype = new StringBuilder();
-//            for(var gene : animal.getGenotype()){
-//                genotype.append(gene);
-//            }
-//            return "Selected animal gene: " + genotype;
-//        }
-//        return "";
     }
 
-    public void fillDominant(Vector2D position){
+    /**
+     * Fills position on canvas as dominant animal.
+     *
+     * @param position Position to fill.
+     */
+    public void fillDominant(Vector2D position) {
         position = mapCanvasPosToMapPos(position);
         GraphicsContext gc = this.canvas.getGraphicsContext2D();
         this.width = this.canvas.getWidth() / map.getWidth();
@@ -135,18 +113,22 @@ public class MapCanvasualizer {
     /**
      * Transform vector of map position to 2D canvas coordinates (starting from 0 without negative numbers)
      *
-     * @param position   {@link Vector2D} position to transform.
-     * @param topRight   {@link Vector2D} top-right position of map.
-     * @param bottomLeft {@link Vector2D} bottom-left position of map.
+     * @param position {@link Vector2D} position to transform.
      * @return 2D coordinate.
      */
-    private Vector2D mapMapPosToCanvasPos(Vector2D position, Vector2D topRight, Vector2D bottomLeft) {
-        position = position.subtract(bottomLeft);
-        position = new Vector2D(position.getX(), topRight.getY() - bottomLeft.getY() - position.getY());
+    private Vector2D mapMapPosToCanvasPos(Vector2D position) {
+        position = position.subtract(this.bottom_limit);
+        position = new Vector2D(position.getX(), this.top_limit.getY() - this.bottom_limit.getY() - position.getY());
 
         return position;
     }
 
+    /**
+     * Transform vector of 2D canvas coordinates to map position.
+     *
+     * @param position {@link Vector2D} position to transform.
+     * @return 2D coordinate.
+     */
     private Vector2D mapCanvasPosToMapPos(Vector2D position) {
         position = new Vector2D(position.getX(), (top_limit.getY() - bottom_limit.getY()) - position.getY());
         position = position.add(bottom_limit);
@@ -177,10 +159,6 @@ public class MapCanvasualizer {
      * @return Color of energy.
      */
     private Color getEnergyColor(Animal energy, float maxEnergy) {
-//        int green = (int) (energy * (MIN_ENERGY_GREEN - MAX_ENERGY_GREEN) / maxEnergy);
-//        int blue = (int) (energy * (MIN_ENERGY_BLUE - MAX_ENERGY_BLUE) / maxEnergy);
-//
-//        return Color.rgb(255, MIN_ENERGY_GREEN - green, MIN_ENERGY_BLUE - blue);
         if (energy.getEnergy() < 0) {
             System.out.println(this.map.getAnimalsAt(energy.getPosition()).stream().map(Animal::getEnergy).collect(Collectors.toList()));
             System.out.println(energy.getPosition());
